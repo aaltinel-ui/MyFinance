@@ -9,6 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @AppStorage("selectedAppMode") private var selectedMode: String = AppMode.myFinans.rawValue
 
     private var currentMode: AppMode {
@@ -39,6 +40,9 @@ struct ContentView: View {
         }
         .applyAppFont()
         .applyTheme()
+        .task {
+            DataSeeder.seedIfNeeded(context: modelContext)
+        }
     }
 
     private var modePicker: some View {

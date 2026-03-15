@@ -21,6 +21,7 @@ struct DataSeeder {
             tutar: 500
         )
         context.insert(expense)
+        try? context.save()
 
         UserDefaults.standard.set(true, forKey: seededKey)
     }

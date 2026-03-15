@@ -10,10 +10,11 @@ import SwiftData
 
 @main
 struct MyFinanceApp: App {
-    let container: ModelContainer
-
-    init() {
-        container = try! ModelContainer(for:
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .modelContainer(for: [
             Transaction.self,
             Dividend.self,
             Debt.self,
@@ -21,14 +22,6 @@ struct MyFinanceApp: App {
             ExchangeRate.self,
             ChildExpense.self,
             FitreZekat.self
-        )
-        DataSeeder.seedIfNeeded(context: container.mainContext)
-    }
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(container)
+        ])
     }
 }
