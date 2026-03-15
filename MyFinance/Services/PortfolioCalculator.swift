@@ -9,7 +9,7 @@ class PortfolioCalculator {
     var portfolioSummary = PortfolioSummary()
 
     func calculate(transactions: [Transaction], latestRates: ExchangeRate?) {
-        var positionMap: [String: InstrumentPosition] = []
+        var positionMap: [String: InstrumentPosition] = [:]
 
         for tx in transactions {
             let key = "\(tx.kasaTip)|\(tx.islem)"
@@ -44,6 +44,7 @@ class PortfolioCalculator {
 
         // Type summaries
         var typeMap: [String: TypeSummary] = [:]
+
         for pos in positions {
             if var ts = typeMap[pos.tip] {
                 ts.toplamMaliyet += pos.toplamMaliyet

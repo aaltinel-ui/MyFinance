@@ -36,7 +36,7 @@ struct SummaryCardView: View {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Text(value)
                         .font(.title2)
@@ -44,7 +44,7 @@ struct SummaryCardView: View {
                         .foregroundStyle(.primary)
                     if let subtitle {
                         Text(subtitle)
-                            .font(.caption)
+                            .font(.subheadline)
                             .foregroundStyle(subtitle.contains("+") ? .green : subtitle.contains("-") ? .red : .secondary)
                     }
                 }
@@ -64,16 +64,16 @@ struct KZBadge: View {
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: value >= 0 ? "arrow.up.right" : "arrow.down.right")
-                .font(.caption2)
-            Text(Formatters.formatCurrency(abs(value)))
                 .font(.caption)
+            Text(Formatters.formatCurrency(abs(value)))
+                .font(.subheadline)
                 .fontWeight(.semibold)
             Text("(\(Formatters.formatPercent(percentage)))")
-                .font(.caption2)
+                .font(.caption)
         }
         .foregroundStyle(value >= 0 ? .green : .red)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
         .background(value >= 0 ? Color.green.opacity(0.1) : Color.red.opacity(0.1))
         .clipShape(Capsule())
     }

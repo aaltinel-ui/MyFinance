@@ -174,30 +174,122 @@ class ExcelImportService {
 
         // Cumhuriyet Altın borç - geri alındı
         let debt1 = Debt(
-            verilenTarih: df.date(from: "2025-04-14")!,
-            verilenTutar: 261000,
-            tip: "Cumhuriyet",
-            adet: 10,
-            birimFiyat: 28785,
-            kpiAdi: "Baba"
+            kpiAdi: "Baba",
+            tip: BorcTipi.cumhuriyetAltin.rawValue,
+            miktar: 10,
+            birimTutar: 28785,
+            verilenTarih: df.date(from: "2025-04-14")!
         )
-        debt1.alindigiTarih = df.date(from: "2026-03-01")
-        debt1.geriAlimBirimFiyat = 45663
-        debt1.geriAlimToplamTutar = 456630
+        // Geri ödeme kaydı ekle
+        let payment1 = DebtPayment(tarih: df.date(from: "2026-03-01")!, miktar: 10, birimTutar: 45663)
+        payment1.debt = debt1
+        debt1.odemeler.append(payment1)
+        debt1.durum = BorcDurum.tamamlandi.rawValue
         context.insert(debt1)
+        context.insert(payment1)
 
         // Gram altın borç - bekliyor
         let debt2 = Debt(
-            verilenTarih: df.date(from: "2025-04-14")!,
-            verilenTutar: 367053.33,
-            tip: "Gram",
-            adet: 93,
-            birimFiyat: 4074.03,
-            kpiAdi: "Baba"
+            kpiAdi: "Baba",
+            tip: BorcTipi.gramAltin.rawValue,
+            miktar: 93,
+            birimTutar: 4074.03,
+            verilenTarih: df.date(from: "2025-04-14")!
         )
         context.insert(debt2)
 
         return 2
+    }
+
+    func importChildExpenses() throws -> Int {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+
+        let data: [(yil: Int, kisi: String, aciklama: String, tarih: String, tutarTL: Double, eurDegeri: Double, kategori: String)] = [
+            (2019, "ATABERK", "Acıbadem Üniversitesi", "2020-01-29", 17432, 2665, "Eğitim"),
+            (2020, "ATABERK", "Acıbadem Üniversitesi", "2020-09-15", 5250, 590, "Eğitim"),
+            (2020, "ATABERK", "Acıbadem Üniversitesi", "2021-02-21", 4938, 495, "Eğitim"),
+            (2021, "ATABERK", "Acıbadem Üniversitesi", "2021-09-15", 5895, 591, "Eğitim"),
+            (2021, "ATABERK", "Acıbadem Üniversitesi", "2022-03-03", 5895, 377, "Eğitim"),
+            (2022, "NAZLI İREM", "Bilgenç Kurs ücreti", "2022-06-23", 5000, 273, "Kurs"),
+            (2022, "NAZLI İREM", "Aksa Koleji + Yemek + Servis", "2022-09-29", 39000, 2106, "Eğitim"),
+            (2022, "NAZLI İREM", "Kıyafet + Yayın Kitap", "2022-09-29", 6000, 323, "Giyim"),
+            (2022, "ATABERK", "İRLANDA kursa yatırılan ilk tutar", "2022-11-28", 140744, 7300, "Kurs"),
+            (2023, "ATABERK", "VİZE ÜCRETİ", "2022-12-29", 2285, 115, "Seyahat"),
+            (2022, "NAZLI İREM", "ÜMİT HOCA özel ders", "2022-12-31", 1000, 48, "Kurs"),
+            (2023, "ATABERK", "İRLANDA SEYAHAT SİGORTASI", "2023-01-31", 794, 38, "Seyahat"),
+            (2023, "ATABERK", "İRLANDA UÇAK BİLETİ", "2023-01-31", 5900, 280, "Seyahat"),
+            (2023, "ATABERK", "İRLANDA elden verilen para", "2023-02-19", 68420, 3250, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-03-13", 4000, 190, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-03-16", 5000, 238, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-04-02", 1000, 48, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-04-11", 8000, 380, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-04-19", 0, 2000, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-05-03", 2000, 93, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-05-11", 8000, 372, "Para Transferi"),
+            (2023, "ATABERK", "İrlanda arkadaşında aldığı para", "2023-05-20", 0, 1170, "Para Transferi"),
+            (2023, "NAZLI İREM", "ÜMİT HOCA özel ders", "2023-05-31", 2250, 107, "Kurs"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-06-01", 800, 35, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-06-10", 8000, 320, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-06-21", 0, 1590, "Para Transferi"),
+            (2023, "NAZLI İREM", "GOP Okul 9.sınıf", "2023-07-20", 3900, 136, "Eğitim"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-07-30", 0, 1000, "Para Transferi"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-08-13", 8000, 264, "Para Transferi"),
+            (2023, "NAZLI İREM", "GOP Okul 9.sınıf", "2023-08-20", 3900, 136, "Eğitim"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-08-30", 29200, 1000, "Para Transferi"),
+            (2023, "NAZLI İREM", "Okul-Kitap-Kıyafet 9.sınıf", "2023-09-06", 7100, 247, "Eğitim"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-09-11", 8000, 278, "Para Transferi"),
+            (2023, "ATABERK", "İstanbul'a geldi - elden verildi", "2023-10-07", 29600, 1000, "Para Transferi"),
+            (2023, "NAZLI İREM", "GOP Okul 9.sınıf", "2023-10-19", 3900, 159, "Eğitim"),
+            (2023, "NAZLI İREM", "GOP Okul 9.sınıf", "2023-11-19", 3900, 124, "Eğitim"),
+            (2023, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2023-12-10", 8000, 250, "Para Transferi"),
+            (2023, "NAZLI İREM", "GOP Okul 9.sınıf", "2023-12-19", 3900, 122, "Eğitim"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-01-10", 8000, 250, "Para Transferi"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-01-11", 15000, 450, "Para Transferi"),
+            (2024, "NAZLI İREM", "GOP Okul 9.sınıf", "2024-01-19", 3900, 119, "Eğitim"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-02-10", 8000, 250, "Para Transferi"),
+            (2024, "NAZLI İREM", "GOP Okul 9.sınıf", "2024-02-19", 3900, 117, "Eğitim"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-03-14", 8000, 250, "Para Transferi"),
+            (2024, "ATABERK", "İRLANDA - Uçak bileti", "2024-03-25", 12000, 340, "Seyahat"),
+            (2024, "NAZLI İREM", "GOP Okul 10.sınıf kitap-kıyafet ücreti", "2024-03-31", 10000, 287, "Eğitim"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 19 ders ücreti", "2024-04-13", 13300, 385, "Müzik"),
+            (2024, "NAZLI İREM", "Anfi ücreti - İngiltere'den getirtildi", "2024-04-06", 6500, 188, "Ekipman"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-04-16", 8000, 231, "Para Transferi"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 2 ders ücreti", "2024-04-18", 1400, 40, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 2 ders ücreti", "2024-04-25", 1400, 40, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 2 ders ücreti", "2024-05-02", 1400, 40, "Müzik"),
+            (2024, "NAZLI İREM", "GOP Okul 9.sınıf - 9. ve 10. taksit", "2024-05-03", 7800, 224, "Eğitim"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 2 ders ücreti", "2024-05-09", 1400, 40, "Müzik"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-05-10", 8000, 230, "Para Transferi"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 2 ders ücreti", "2024-05-16", 1400, 40, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-06-07", 700, 20, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-06-11", 700, 20, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-06-13", 700, 20, "Müzik"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ", "2024-06-18", 8000, 228, "Para Transferi"),
+            (2024, "NAZLI İREM", "GOP Okul 9.sınıf - 11. ve 12. taksit", "2024-06-25", 8000, 228, "Eğitim"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-07-03", 700, 19, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-07-06", 700, 19, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-07-10", 700, 19, "Müzik"),
+            (2024, "NAZLI İREM", "Müzik Gitar Dersi 1 ders ücreti", "2024-07-13", 700, 19, "Müzik"),
+            (2024, "ATABERK", "İRLANDA - PARA TRANSFERİ - Masraflar", "2024-07-31", 15000, 416, "Para Transferi"),
+        ]
+
+        var count = 0
+        for d in data {
+            guard let date = df.date(from: d.tarih) else { continue }
+            let expense = ChildExpense(
+                yil: d.yil,
+                tarih: date,
+                cocukAdi: d.kisi,
+                kategori: d.kategori,
+                aciklama: d.aciklama,
+                tutar: d.tutarTL,
+                eurDegeri: Double(d.eurDegeri)
+            )
+            context.insert(expense)
+            count += 1
+        }
+        return count
     }
 
     func importExchangeRates() throws -> Int {

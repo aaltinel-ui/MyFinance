@@ -5,10 +5,13 @@ struct TransactionFormView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
 
+    var transaction: Transaction?
+    private let catalog = CatalogManager.shared
+
     @State private var tarih = Date()
-    @State private var kasaTip: KasaTip = .birikim
+    @State private var kasaTipStr = KasaTip.birikim.rawValue
     @State private var islem = ""
-    @State private var tip: BirimTip = .hisse
+    @State private var tipStr = BirimTip.hisse.rawValue
     @State private var nerede: SaklamaYeri = .banka
     @State private var guncellenecekMi = true
     @State private var yon: HareketYon = .arti
@@ -16,13 +19,7 @@ struct TransactionFormView: View {
     @State private var adet = ""
     @State private var notlar = ""
 
-    private let commonInstruments = [
-        "TUPRS", "KCHOL", "AKBNK", "THYAO", "ALFAS", "ARCLK",
-        "ALTIN GRAM", "Cumhuriyet Altın", "Çeyrek Altın", "Yarım Altın",
-        "BITCOIN/TRY", "ETH/TRY",
-        "YFBL1", "YFBL7", "YFBA1", "YFAI1", "YFAE2",
-        "Euro", "Usd"
-    ]
+    private var isEditing: Bool { transaction != nil }
 
     private var tutarTL: Double {
         (Double(birimFiyat.replacingOccurrences(of: ",", with: ".")) ?? 0) *
@@ -34,9 +31,9 @@ struct TransactionFormView: View {
             Form {
                 Section("Hareket Bilgileri") {
                     DatePicker("Tarih", selection: $tarih, displayedComponents: .date)
-                    Picker("Kasa", selection: $kasaTip) {
-                        ForEach(KasaTip.allCases) { k in
-                            Text(k.rawValue).tag(k)
+                    Picker("Kasa", selection: $kasaTipStr) {
+                        ForEach(catalog.activeKasaTips, id: \.self) { kasa in
+                            Text(kasa).tag(kasa)
                         }
                     }
                     Picker("Yön", selection: $yon) {
@@ -47,9 +44,9 @@ struct TransactionFormView: View {
                 }
 
                 Section("Enstrüman") {
-                    Picker("Tip", selection: $tip) {
-                        ForEach(BirimTip.allCases) { t in
-                            Text(t.rawValue).tag(t)
+                    Picker("Tip", selection: $tipStr) {
+                        ForEach(catalog.activeBirimTips, id: \.self) { tip in
+                            Text(tip).tag(tip)
                         }
                     }
                     if islem.isEmpty {
@@ -57,9 +54,9 @@ struct TransactionFormView: View {
                             HStack {
                                 ForEach(suggestedInstruments, id: \.self) { inst in
                                     Button(inst) { islem = inst }
-                                        .font(.caption)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 6)
+                                        .font(.subheadline)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 7)
                                         .background(Color.accentColor.opacity(0.1))
                                         .clipShape(Capsule())
                                 }
@@ -95,22 +92,36 @@ struct TransactionFormView: View {
                         .lineLimit(3)
                 }
             }
-            .navigationTitle("Yeni Hareket")
+            .navigationTitle(isEditing ? "Hareketi Düzenle" : "Yeni Hareket")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("İptal") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Kaydet") { save() }
+                    Button(isEditing ? "Güncelle" : "Kaydet") { save() }
                         .disabled(islem.isEmpty || tutarTL == 0)
+                }
+            }
+            .onAppear {
+                if let tx = transaction {
+                    tarih = tx.tarih
+                    kasaTipStr = tx.kasaTip
+                    islem = tx.islem
+                    tipStr = tx.tip
+                    nerede = tx.neredeEnum ?? .banka
+                    guncellenecekMi = tx.guncellenecekMi
+                    yon = tx.yonEnum ?? .arti
+                    birimFiyat = Formatters.formatDecimal(tx.birimFiyat)
+                    adet = Formatters.formatDecimal(tx.adet)
+                    notlar = tx.notlar ?? ""
                 }
             }
         }
     }
 
     private var suggestedInstruments: [String] {
-        switch tip {
+        switch BirimTip(rawValue: tipStr) {
         case .hisse: return ["TUPRS", "KCHOL", "AKBNK", "THYAO", "ALFAS", "ARCLK"]
         case .altin: return ["ALTIN GRAM", "Cumhuriyet Altın", "Çeyrek Altın", "Yarım Altın"]
         case .coin: return ["BITCOIN/TRY", "ETH/TRY"]
@@ -123,19 +134,38 @@ struct TransactionFormView: View {
         let bf = Double(birimFiyat.replacingOccurrences(of: ",", with: ".")) ?? 0
         let ad = Double(adet.replacingOccurrences(of: ",", with: ".")) ?? 0
 
-        let tx = Transaction(
-            tarih: tarih,
-            kasaTip: kasaTip,
-            islem: islem,
-            tip: tip,
-            nerede: nerede,
-            guncellenecekMi: guncellenecekMi,
-            yon: yon,
-            birimFiyat: bf,
-            adet: ad,
-            notlar: notlar.isEmpty ? nil : notlar
-        )
-        context.insert(tx)
+        if let tx = transaction {
+            tx.tarih = tarih
+            tx.kasaTip = kasaTipStr
+            tx.islem = islem
+            tx.tip = tipStr
+            tx.nerede = nerede.rawValue
+            tx.guncellenecekMi = guncellenecekMi
+            tx.yon = yon.rawValue
+            tx.birimFiyat = bf
+            tx.adet = ad
+            tx.tutarTL = bf * ad
+            tx.notlar = notlar.isEmpty ? nil : notlar
+        } else {
+            let kasaEnum = KasaTip(rawValue: kasaTipStr) ?? .birikim
+            let tipEnum = BirimTip(rawValue: tipStr) ?? .hisse
+            let tx = Transaction(
+                tarih: tarih,
+                kasaTip: kasaEnum,
+                islem: islem,
+                tip: tipEnum,
+                nerede: nerede,
+                guncellenecekMi: guncellenecekMi,
+                yon: yon,
+                birimFiyat: bf,
+                adet: ad,
+                notlar: notlar.isEmpty ? nil : notlar
+            )
+            // Override with string values for custom types
+            tx.kasaTip = kasaTipStr
+            tx.tip = tipStr
+            context.insert(tx)
+        }
         dismiss()
     }
 }

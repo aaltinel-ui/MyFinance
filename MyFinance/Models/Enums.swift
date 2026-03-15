@@ -109,3 +109,145 @@ enum GelirKategorisi: String, Codable, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 }
+
+enum CocukHarcamaKategori: String, Codable, CaseIterable, Identifiable {
+    case egitim = "Eğitim"
+    case saglik = "Sağlık"
+    case giyim = "Giyim"
+    case yiyecek = "Yiyecek"
+    case oyuncak = "Oyuncak"
+    case kurs = "Kurs"
+    case muzik = "Müzik"
+    case seyahat = "Seyahat"
+    case paraTransferi = "Para Transferi"
+    case ekipman = "Ekipman"
+    case harçlık = "Harçlık"
+    case diger = "Diğer"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .egitim: return "book.fill"
+        case .saglik: return "cross.case.fill"
+        case .giyim: return "tshirt.fill"
+        case .yiyecek: return "fork.knife"
+        case .oyuncak: return "gamecontroller.fill"
+        case .kurs: return "person.3.fill"
+        case .muzik: return "guitars.fill"
+        case .seyahat: return "airplane"
+        case .paraTransferi: return "arrow.left.arrow.right"
+        case .ekipman: return "wrench.and.screwdriver.fill"
+        case .harçlık: return "turkishlirasign.circle"
+        case .diger: return "ellipsis.circle.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .egitim: return "blue"
+        case .saglik: return "red"
+        case .giyim: return "purple"
+        case .yiyecek: return "orange"
+        case .oyuncak: return "pink"
+        case .kurs: return "teal"
+        case .muzik: return "indigo"
+        case .seyahat: return "cyan"
+        case .paraTransferi: return "mint"
+        case .ekipman: return "brown"
+        case .harçlık: return "green"
+        case .diger: return "gray"
+        }
+    }
+}
+
+enum BorcTipi: String, Codable, CaseIterable, Identifiable {
+    case gramAltin = "Gram Altın"
+    case ceyrekAltin = "Çeyrek Altın"
+    case yarimAltin = "Yarım Altın"
+    case cumhuriyetAltin = "Cumhuriyet Altın"
+    case euro = "Euro"
+    case usd = "USD"
+    case tl = "TL"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .gramAltin, .ceyrekAltin, .yarimAltin, .cumhuriyetAltin: return "circle.fill"
+        case .euro: return "eurosign.circle"
+        case .usd: return "dollarsign.circle"
+        case .tl: return "turkishlirasign.circle"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .gramAltin, .ceyrekAltin, .yarimAltin, .cumhuriyetAltin: return "yellow"
+        case .euro: return "blue"
+        case .usd: return "green"
+        case .tl: return "red"
+        }
+    }
+}
+
+enum BorcDurum: String, Codable, CaseIterable, Identifiable {
+    case acik = "Açık"
+    case kismi = "Kısmi"
+    case tamamlandi = "Tamamlandı"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .acik: return "clock.fill"
+        case .kismi: return "chart.bar.fill"
+        case .tamamlandi: return "checkmark.circle.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .acik: return "orange"
+        case .kismi: return "blue"
+        case .tamamlandi: return "green"
+        }
+    }
+}
+
+enum ParaBirimi: String, Codable, CaseIterable, Identifiable {
+    case tl = "TL"
+    case usd = "USD"
+    case eur = "EUR"
+
+    var id: String { rawValue }
+
+    var symbol: String {
+        switch self {
+        case .tl: return "₺"
+        case .usd: return "$"
+        case .eur: return "€"
+        }
+    }
+}
+
+enum FitreZekatTur: String, Codable, CaseIterable, Identifiable {
+    case fitre = "Fitre"
+    case zekat = "Zekât"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .fitre: return "hand.raised.fill"
+        case .zekat: return "heart.circle.fill"
+        }
+    }
+
+    var color: String {
+        switch self {
+        case .fitre: return "green"
+        case .zekat: return "teal"
+        }
+    }
+}
