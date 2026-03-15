@@ -22,34 +22,27 @@ struct DataSeeder {
             SeedEntry(cocukAdi: "ATABERK", tutar: 999,  kategori: CocukHarcamaKategori.egitim.rawValue, aciklama: "Eğitim Harcaması", tarih: date20260315),
         ]
 
-        // Fetch all ATABERK expenses once, filter in Swift (avoids Double predicate issues)
-        let descriptor = FetchDescriptor<ChildExpense>(
-            predicate: #Predicate { $0.cocukAdi == "ATABERK" }
-        )
-        let existing = (try? context.fetch(descriptor)) ?? []
+        // Fetch ALL expenses without any predicate to avoid SwiftData predicate issues
+        let existing = (try? context.fetch(FetchDescriptor<ChildExpense>())) ?? []
 
-        var didInsert = false
         for entry in entries {
             let alreadyExists = existing.contains {
+                $0.cocukAdi == entry.cocukAdi &&
                 abs($0.tutar - entry.tutar) < 0.01 &&
                 Calendar.current.isDate($0.tarih, inSameDayAs: entry.tarih)
             }
             guard !alreadyExists else { continue }
 
-            let expense = ChildExpense(
+            context.insert(ChildExpense(
                 yil: Calendar.current.component(.year, from: entry.tarih),
                 tarih: entry.tarih,
                 cocukAdi: entry.cocukAdi,
                 kategori: entry.kategori,
                 aciklama: entry.aciklama,
                 tutar: entry.tutar
-            )
-            context.insert(expense)
-            didInsert = true
+            ))
         }
 
-        if didInsert {
-            try? context.save()
-        }
+        try? context.save()
     }
 }
