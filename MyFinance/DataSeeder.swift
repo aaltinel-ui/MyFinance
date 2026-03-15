@@ -20,6 +20,7 @@ struct DataSeeder {
         let entries: [SeedEntry] = [
             SeedEntry(cocukAdi: "ATABERK", tutar: 500,  kategori: CocukHarcamaKategori.diger.rawValue,  aciklama: "Harcama",          tarih: date20260315),
             SeedEntry(cocukAdi: "ATABERK", tutar: 999,  kategori: CocukHarcamaKategori.egitim.rawValue, aciklama: "Eğitim Harcaması", tarih: date20260315),
+            SeedEntry(cocukAdi: "ALPAY",   tutar: 500,  kategori: CocukHarcamaKategori.diger.rawValue,  aciklama: "Harcama",          tarih: date20260315),
         ]
 
         // Fetch ALL expenses without any predicate to avoid SwiftData predicate issues
