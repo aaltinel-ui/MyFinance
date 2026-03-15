@@ -3,7 +3,7 @@ import SwiftData
 
 struct DataSeeder {
     static func seedIfNeeded(context: ModelContext) {
-        let targetDate: Date = {
+        let today: Date = {
             var components = DateComponents()
             components.year = 2026
             components.month = 3
@@ -11,13 +11,40 @@ struct DataSeeder {
             return Calendar.current.date(from: components) ?? Date()
         }()
 
-        let startOfDay = Calendar.current.startOfDay(for: targetDate)
+        seedExpenseIfNeeded(
+            context: context,
+            cocukAdi: "ATABERK",
+            tutar: 500,
+            kategori: CocukHarcamaKategori.diger.rawValue,
+            aciklama: "Harcama",
+            tarih: today
+        )
+
+        seedExpenseIfNeeded(
+            context: context,
+            cocukAdi: "ATABERK",
+            tutar: 999,
+            kategori: CocukHarcamaKategori.egitim.rawValue,
+            aciklama: "Eğitim Harcaması",
+            tarih: today
+        )
+    }
+
+    private static func seedExpenseIfNeeded(
+        context: ModelContext,
+        cocukAdi: String,
+        tutar: Double,
+        kategori: String,
+        aciklama: String,
+        tarih: Date
+    ) {
+        let startOfDay = Calendar.current.startOfDay(for: tarih)
         let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
 
         var descriptor = FetchDescriptor<ChildExpense>(
             predicate: #Predicate {
-                $0.cocukAdi == "ATABERK" &&
-                $0.tutar == 500 &&
+                $0.cocukAdi == cocukAdi &&
+                $0.tutar == tutar &&
                 $0.tarih >= startOfDay &&
                 $0.tarih < endOfDay
             }
@@ -28,12 +55,12 @@ struct DataSeeder {
         guard existing.isEmpty else { return }
 
         let expense = ChildExpense(
-            yil: 2026,
-            tarih: targetDate,
-            cocukAdi: "ATABERK",
-            kategori: CocukHarcamaKategori.diger.rawValue,
-            aciklama: "Harcama",
-            tutar: 500
+            yil: Calendar.current.component(.year, from: tarih),
+            tarih: tarih,
+            cocukAdi: cocukAdi,
+            kategori: kategori,
+            aciklama: aciklama,
+            tutar: tutar
         )
         context.insert(expense)
         try? context.save()
