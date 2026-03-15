@@ -10,8 +10,11 @@ import SwiftData
 
 @main
 struct MyFinanceApp: App {
-    let container: ModelContainer = {
-        let schema = Schema([
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .modelContainer(for: [
             Transaction.self,
             Dividend.self,
             Debt.self,
@@ -20,17 +23,5 @@ struct MyFinanceApp: App {
             ChildExpense.self,
             FitreZekat.self
         ])
-        let config = ModelConfiguration(
-            schema: schema,
-            cloudKitDatabase: .automatic
-        )
-        return try! ModelContainer(for: schema, configurations: config)
-    }()
-
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
-        .modelContainer(container)
     }
 }
