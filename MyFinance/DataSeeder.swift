@@ -44,6 +44,24 @@ struct DataSeeder {
             ))
         }
 
+        // Borç seed
+        let existingDebts = (try? context.fetch(FetchDescriptor<Debt>())) ?? []
+        let debtAlreadyExists = existingDebts.contains {
+            $0.kpiAdi == "aaaa" &&
+            abs($0.toplamTutar - 888) < 0.01 &&
+            Calendar.current.isDate($0.verilenTarih, inSameDayAs: date20260315)
+        }
+        if !debtAlreadyExists {
+            context.insert(Debt(
+                kpiAdi: "aaaa",
+                tip: "Nakit",
+                miktar: 1,
+                birimTutar: 888,
+                paraBirimi: "TL",
+                verilenTarih: date20260315
+            ))
+        }
+
         try? context.save()
     }
 }
