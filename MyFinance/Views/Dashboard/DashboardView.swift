@@ -27,9 +27,6 @@ struct DashboardView: View {
                 }
                 .padding()
             }
-            .refreshable {
-                await refreshPrices()
-            }
             .navigationTitle("MyFinans")
             .toolbar {
                 ToolbarItem(placement: .automatic) {

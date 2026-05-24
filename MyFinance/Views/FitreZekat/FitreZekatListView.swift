@@ -88,7 +88,6 @@ struct FitreZekatListView: View {
             }
             .padding()
         }
-        .refreshable {}
         .searchable(text: $searchText, prompt: "Kayıt ara...")
         .toolbar {
             ToolbarItem(placement: .automatic) {

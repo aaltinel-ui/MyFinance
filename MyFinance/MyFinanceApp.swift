@@ -7,14 +7,9 @@
 
 import SwiftUI
 import SwiftData
-import FirebaseCore
 
 @main
 struct MyFinanceApp: App {
-    init() {
-        FirebaseApp.configure()
-    }
-
     var body: some Scene {
         WindowGroup {
             ContentView()
