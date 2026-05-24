@@ -96,6 +96,7 @@ struct DebtView: View {
                 }
             }
         }
+        .refreshable {}
         .searchable(text: $searchText, prompt: "Borç ara...")
         .toolbar {
             ToolbarItem(placement: .automatic) {
