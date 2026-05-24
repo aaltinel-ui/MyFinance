@@ -251,10 +251,16 @@ final class FirestoreService {
             context.insert(t)
             added += 1
         }
-        try context.save()
-        // Anlık doğrulama: save sonrası aynı context'ten fetch
+        // Save öncesi: context'teki pending insert sayısı
+        let beforeSave = context.insertedModelsArray.count
+        do {
+            try context.save()
+        } catch {
+            return "\(added) yeni / \(total) toplam [SAVE HATA: \(error)]"
+        }
+        // Save sonrası: persistent store'daki kayıt sayısı
         let afterSave = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-        return "\(added) yeni / \(total) toplam [ctx:\(afterSave)]"
+        return "\(added) yeni / \(total) toplam [pending:\(beforeSave) after:\(afterSave)]"
     }
 
     // MARK: - Download Dividends
