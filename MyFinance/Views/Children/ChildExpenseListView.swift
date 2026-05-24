@@ -113,6 +113,12 @@ struct ChildExpenseListView: View {
             }
             .listStyle(.plain)
         }
+        .onAppear {
+            DataSeeder.seedIfNeeded(context: context)
+        }
+        .refreshable {
+            DataSeeder.seedIfNeeded(context: context)
+        }
         .searchable(text: $searchText, prompt: "Harcama ara...")
         .toolbar {
             ToolbarItem(placement: .automatic) {
