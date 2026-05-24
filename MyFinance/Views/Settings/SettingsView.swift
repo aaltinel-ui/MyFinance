@@ -408,14 +408,19 @@ struct SettingsView: View {
     private func downloadFromFirebase() {
         isSyncing = true
         syncStatus = "İndiriliyor..."
+        // @Environment(\.modelContext) async task'larda çalışmayabilir.
+        // Container'dan taze bir context oluştur — bu her zaman geçerlidir.
+        // context.container üzerinden taze context — @Environment async'de güvenli değil
+        let dlContainer = context.container
         Task { @MainActor in
             do {
-                let log = try await FirestoreService.shared.downloadAll(context: context)
+                let freshCtx = ModelContext(dlContainer)
+                let log = try await FirestoreService.shared.downloadAll(context: freshCtx)
                 lastSyncDateInterval = Date().timeIntervalSince1970
 
                 // Kaç kayıt gerçekten SwiftData'da var diye kontrol et
-                let txCount  = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-                let exCount  = (try? context.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
+                let txCount  = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
+                let exCount  = (try? freshCtx.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
                 syncStatus = "✅ Tamamlandı\n\(log)\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
 
                 // Dashboard ve diğer görünümlere yeniden hesaplamaları için sinyal ver
