@@ -410,11 +410,13 @@ struct SettingsView: View {
         syncStatus = "İndiriliyor..."
         Task { @MainActor in
             do {
-                try await FirestoreService.shared.downloadAll(context: context)
+                let log = try await FirestoreService.shared.downloadAll(context: context)
                 lastSyncDateInterval = Date().timeIntervalSince1970
-                syncStatus = "İndirme tamamlandı"
+                syncStatus = "✅ İndirme tamamlandı\n\(log)"
+                // Dashboard ve diğer görünümlere yeniden hesaplamaları için sinyal ver
+                NotificationCenter.default.post(name: .myFinanceDataDownloaded, object: nil)
             } catch {
-                syncStatus = "Hata: \(error.localizedDescription)"
+                syncStatus = "❌ Hata: \(error.localizedDescription)"
             }
             isSyncing = false
         }
@@ -455,6 +457,10 @@ struct SettingsView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let myFinanceDataDownloaded = Notification.Name("myFinanceDataDownloaded")
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

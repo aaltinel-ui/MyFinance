@@ -53,6 +53,9 @@ struct DashboardView: View {
             .onAppear { recalculate() }
             .onChange(of: transactions.count) { recalculate() }
             .onChange(of: exchangeRates.count) { recalculate() }
+            .onReceive(NotificationCenter.default.publisher(for: .myFinanceDataDownloaded)) { _ in
+                recalculate()
+            }
         }
     }
 

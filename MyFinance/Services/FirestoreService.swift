@@ -11,6 +11,13 @@ final class FirestoreService {
     private let db = Firestore.firestore()
     private init() {}
 
+    // MARK: - Helpers
+    // Firestore tam sayıları Int64, ondalıklıları Double döndürebilir.
+    // NSNumber üzerinden cast ederek her iki durumu güvenle handle ederiz.
+    private func dbl(_ dict: [String: Any], _ key: String) -> Double {
+        (dict[key] as? NSNumber)?.doubleValue ?? 0
+    }
+
     // MARK: - Upload All
 
     func uploadAll(context: ModelContext) {
@@ -177,76 +184,226 @@ final class FirestoreService {
 
     // MARK: - Download All
 
-    func downloadAll(context: ModelContext) async throws {
-        try await downloadTransactions(context: context)
-        try await downloadDividends(context: context)
-        try await downloadChildExpenses(context: context)
+    func downloadAll(context: ModelContext) async throws -> String {
+        var log = ""
+        let tx  = try await downloadTransactions(context: context)
+        log += "İşlem: \(tx)\n"
+        let div = try await downloadDividends(context: context)
+        log += "Temettü: \(div)\n"
+        let ch  = try await downloadChildExpenses(context: context)
+        log += "Çocuk: \(ch)\n"
+        let db  = try await downloadDebts(context: context)
+        log += "Borç: \(db)\n"
+        let ex  = try await downloadExchangeRates(context: context)
+        log += "Kur: \(ex)\n"
+        let fz  = try await downloadFitreZekat(context: context)
+        log += "Fitre/Zekât: \(fz)"
+        return log
     }
 
-    private func downloadTransactions(context: ModelContext) async throws {
+    // MARK: - Download Transactions
+    // Not: kasaTip/tip/nerede/yon stringleri kullanıcıya özgü olabilir (enum dışı).
+    // Guard yerine fallback kullanılır, asıl string değer sonradan atanır.
+    @discardableResult
+    private func downloadTransactions(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("transactions").getDocuments()
+        let total = snapshot.documents.count
         let existing = (try? context.fetch(FetchDescriptor<Transaction>())) ?? []
         let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
 
         for doc in snapshot.documents {
             let d = doc.data()
             guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
-            guard let kasaTip = KasaTip(rawValue: d["kasaTip"] as? String ?? ""),
-                  let tip = BirimTip(rawValue: d["tip"] as? String ?? ""),
-                  let nerede = SaklamaYeri(rawValue: d["nerede"] as? String ?? ""),
-                  let yon = HareketYon(rawValue: d["yon"] as? String ?? "") else { continue }
-            let tarih = (d["tarih"] as? Timestamp)?.dateValue() ?? Date()
+
+            let tarih       = (d["tarih"] as? Timestamp)?.dateValue() ?? Date()
+            let kasaTipStr  = d["kasaTip"] as? String ?? ""
+            let tipStr      = d["tip"] as? String ?? ""
+            let neredeStr   = d["nerede"] as? String ?? ""
+            let yonStr      = d["yon"] as? String ?? ""
+
+            let kasaTip = KasaTip(rawValue: kasaTipStr) ?? .birikim
+            let tip     = BirimTip(rawValue: tipStr) ?? .hisse
+            let nerede  = SaklamaYeri(rawValue: neredeStr) ?? .banka
+            let yon     = HareketYon(rawValue: yonStr) ?? .arti
+
             let t = Transaction(
-                tarih: tarih, kasaTip: kasaTip, islem: d["islem"] as? String ?? "",
-                tip: tip, nerede: nerede, guncellenecekMi: d["guncellenecekMi"] as? Bool ?? true,
-                yon: yon, birimFiyat: d["birimFiyat"] as? Double ?? 0,
-                adet: d["adet"] as? Double ?? 0, notlar: d["notlar"] as? String
+                tarih: tarih, kasaTip: kasaTip,
+                islem: d["islem"] as? String ?? "",
+                tip: tip, nerede: nerede,
+                guncellenecekMi: d["guncellenecekMi"] as? Bool ?? true,
+                yon: yon,
+                birimFiyat: dbl(d, "birimFiyat"),
+                adet: dbl(d, "adet"),
+                notlar: d["notlar"] as? String
             )
+            t.kasaTip = kasaTipStr; t.tip = tipStr; t.nerede = neredeStr; t.yon = yonStr
+            // tutarTL'yi Firestore'dan gelen değerle override et (birimFiyat*adet'ten farklı olabilir)
+            let tutarTL = dbl(d, "tutarTL")
+            if tutarTL > 0 { t.tutarTL = tutarTL }
+            if let uuid = UUID(uuidString: idStr) { t.id = uuid }
             context.insert(t)
+            added += 1
         }
         try context.save()
+        return "\(added) yeni / \(total) toplam"
     }
 
-    private func downloadDividends(context: ModelContext) async throws {
+    // MARK: - Download Dividends
+
+    @discardableResult
+    private func downloadDividends(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("dividends").getDocuments()
+        let total = snapshot.documents.count
         let existing = (try? context.fetch(FetchDescriptor<Dividend>())) ?? []
         let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
 
         for doc in snapshot.documents {
             let d = doc.data()
             guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
             let tarih = (d["tarih"] as? Timestamp)?.dateValue() ?? Date()
-            let div = Dividend(
-                tarih: tarih, hisse: d["hisse"] as? String ?? "",
-                adet: d["adet"] as? Double ?? 0, birimTemettu: d["birimTemettu"] as? Double ?? 0
-            )
-            context.insert(div)
+            let div = Dividend(tarih: tarih, hisse: d["hisse"] as? String ?? "",
+                               adet: dbl(d, "adet"),
+                               birimTemettu: dbl(d, "birimTemettu"))
+            if let uuid = UUID(uuidString: idStr) { div.id = uuid }
+            context.insert(div); added += 1
         }
         try context.save()
+        return "\(added) yeni / \(total) toplam"
     }
 
-    private func downloadChildExpenses(context: ModelContext) async throws {
+    // MARK: - Download Child Expenses
+
+    @discardableResult
+    private func downloadChildExpenses(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("childExpenses").getDocuments()
+        let total = snapshot.documents.count
         let existing = (try? context.fetch(FetchDescriptor<ChildExpense>())) ?? []
         let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
 
         for doc in snapshot.documents {
             let d = doc.data()
             guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
             let tarih = (d["tarih"] as? Timestamp)?.dateValue() ?? Date()
-            let cocukAdi = d["cocukAdi"] as? String ?? ""
-            let kategori = d["kategori"] as? String ?? ""
-            let aciklama = d["aciklama"] as? String ?? ""
-            let tutar = d["tutar"] as? Double ?? 0
-            let eurDegeri = d["eurDegeri"] as? Double ?? 0
-            let kur = d["kur"] as? Double ?? 0
-            let yil = d["yil"] as? Int ?? Calendar.current.component(.year, from: tarih)
-            let exp = ChildExpense(
-                yil: yil, tarih: tarih, cocukAdi: cocukAdi, kategori: kategori,
-                aciklama: aciklama, tutar: tutar, eurDegeri: eurDegeri, kur: kur
-            )
-            context.insert(exp)
+            let yil   = (d["yil"] as? NSNumber)?.intValue ?? Calendar.current.component(.year, from: tarih)
+            let exp = ChildExpense(yil: yil, tarih: tarih,
+                cocukAdi: d["cocukAdi"] as? String ?? "", kategori: d["kategori"] as? String ?? "",
+                aciklama: d["aciklama"] as? String ?? "", tutar: dbl(d, "tutar"),
+                eurDegeri: dbl(d, "eurDegeri"), kur: dbl(d, "kur"),
+                notlar: d["notlar"] as? String)
+            if let uuid = UUID(uuidString: idStr) { exp.id = uuid }
+            context.insert(exp); added += 1
         }
         try context.save()
+        return "\(added) yeni / \(total) toplam"
+    }
+
+    // MARK: - Download Debts
+
+    @discardableResult
+    private func downloadDebts(context: ModelContext) async throws -> String {
+        let snapshot = try await db.collection("debts").getDocuments()
+        let total = snapshot.documents.count
+        let existing = (try? context.fetch(FetchDescriptor<Debt>())) ?? []
+        let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
+
+        for doc in snapshot.documents {
+            let d = doc.data()
+            guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
+            let debt = Debt(
+                kpiAdi: d["kpiAdi"] as? String ?? "", tip: d["tip"] as? String ?? "",
+                miktar: dbl(d, "miktar"), birimTutar: dbl(d, "birimTutar"),
+                paraBirimi: d["paraBirimi"] as? String ?? "TL",
+                verilenTarih: (d["verilenTarih"] as? Timestamp)?.dateValue() ?? Date(),
+                notlar: d["notlar"] as? String)
+            debt.durum = d["durum"] as? String ?? BorcDurum.acik.rawValue
+            if let uuid = UUID(uuidString: idStr) { debt.id = uuid }
+            if let odemelerData = d["odemeler"] as? [[String: Any]] {
+                for pd in odemelerData {
+                    let odeme = DebtPayment(
+                        tarih: (pd["tarih"] as? Timestamp)?.dateValue() ?? Date(),
+                        miktar: dbl(pd, "miktar"),
+                        birimTutar: dbl(pd, "birimTutar"),
+                        notlar: pd["notlar"] as? String)
+                    if let pIdStr = pd["id"] as? String, let uuid = UUID(uuidString: pIdStr) { odeme.id = uuid }
+                    debt.odemeler.append(odeme)
+                }
+            }
+            context.insert(debt); added += 1
+        }
+        try context.save()
+        return "\(added) yeni / \(total) toplam"
+    }
+
+    // MARK: - Download Exchange Rates
+
+    @discardableResult
+    private func downloadExchangeRates(context: ModelContext) async throws -> String {
+        let snapshot = try await db.collection("exchangeRates").getDocuments()
+        let total = snapshot.documents.count
+        let existing = (try? context.fetch(FetchDescriptor<ExchangeRate>())) ?? []
+        let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
+
+        for doc in snapshot.documents {
+            let d = doc.data()
+            guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
+            let tarih = (d["tarih"] as? Timestamp)?.dateValue() ?? Date()
+            let rate = ExchangeRate(tarih: tarih)
+            if let uuid = UUID(uuidString: idStr) { rate.id = uuid }
+            let optDbl: (String) -> Double? = { (d[$0] as? NSNumber).map { $0.doubleValue } }
+            rate.altinGram       = optDbl("altinGram")
+            rate.euro            = optDbl("euro")
+            rate.usd             = optDbl("usd")
+            rate.ceyrekAltin     = optDbl("ceyrekAltin")
+            rate.cumhuriyetAltin = optDbl("cumhuriyetAltin")
+            rate.yarimAltin      = optDbl("yarimAltin")
+            rate.kchol           = optDbl("kchol")
+            rate.tuprs           = optDbl("tuprs")
+            rate.thyao           = optDbl("thyao")
+            rate.alfas           = optDbl("alfas")
+            rate.arclk           = optDbl("arclk")
+            rate.akbnk           = optDbl("akbnk")
+            rate.yfbl1           = optDbl("yfbl1")
+            rate.yfbl7           = optDbl("yfbl7")
+            rate.yfba1           = optDbl("yfba1")
+            rate.yfai1           = optDbl("yfai1")
+            rate.yfae2           = optDbl("yfae2")
+            rate.bitcoinTRY      = optDbl("bitcoinTRY")
+            rate.ethTRY          = optDbl("ethTRY")
+            context.insert(rate); added += 1
+        }
+        try context.save()
+        return "\(added) yeni / \(total) toplam"
+    }
+
+    // MARK: - Download Fitre & Zekat
+
+    @discardableResult
+    private func downloadFitreZekat(context: ModelContext) async throws -> String {
+        let snapshot = try await db.collection("fitreZekat").getDocuments()
+        let total = snapshot.documents.count
+        let existing = (try? context.fetch(FetchDescriptor<FitreZekat>())) ?? []
+        let existingIDs = Set(existing.map { $0.id.uuidString })
+        var added = 0
+
+        for doc in snapshot.documents {
+            let d = doc.data()
+            guard let idStr = d["id"] as? String, !existingIDs.contains(idStr) else { continue }
+            let fz = FitreZekat(
+                tarih:    (d["tarih"] as? Timestamp)?.dateValue() ?? Date(),
+                tur:      d["tur"] as? String ?? "",
+                kisiAdi:  d["kisiAdi"] as? String ?? "",
+                tutar:    dbl(d, "tutar"),
+                aciklama: d["aciklama"] as? String ?? "",
+                notlar:   d["notlar"] as? String)
+            if let uuid = UUID(uuidString: idStr) { fz.id = uuid }
+            context.insert(fz); added += 1
+        }
+        try context.save()
+        return "\(added) yeni / \(total) toplam"
     }
 }
