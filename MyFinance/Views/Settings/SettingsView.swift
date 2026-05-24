@@ -298,8 +298,21 @@ struct SettingsView: View {
                     HStack {
                         Text("Versiyon")
                         Spacer()
-                        Text("1.0.0")
+                        Text(BuildInfo.displayVersion)
                             .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Son Güncelleme")
+                        Spacer()
+                        Text(BuildInfo.buildDate)
+                            .foregroundStyle(.secondary)
+                    }
+                    HStack {
+                        Text("Commit")
+                        Spacer()
+                        Text(BuildInfo.commitHash)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
                     }
                     HStack {
                         Text("Geliştirici")
@@ -385,7 +398,7 @@ struct SettingsView: View {
         isSyncing = true
         syncStatus = "Yükleniyor..."
         Task { @MainActor in
-            await FirestoreService.shared.uploadAll(context: context)
+            FirestoreService.shared.uploadAll(context: context)
             lastSyncDateInterval = Date().timeIntervalSince1970
             syncStatus = "Yükleme tamamlandı"
             isSyncing = false

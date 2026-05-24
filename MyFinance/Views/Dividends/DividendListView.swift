@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct DividendListView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Dividend.tarih, order: .reverse) private var dividends: [Dividend]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -29,7 +30,7 @@ struct DividendListView: View {
                 HStack(spacing: 16) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Toplam Temettü").font(.caption).foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(toplamTutar)).font(.title3).fontWeight(.bold).foregroundStyle(.green)
+                        Text(Formatters.maskedCurrency(toplamTutar)).font(.title3).fontWeight(.bold).foregroundStyle(.green)
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
@@ -108,7 +109,7 @@ struct DividendListView: View {
                 Text(Formatters.formatDate(div.tarih)).font(.caption).foregroundStyle(.secondary)
             }
             Spacer()
-            Text(Formatters.formatCurrency(div.toplamTutar))
+            Text(Formatters.maskedCurrency(div.toplamTutar))
                 .font(.body).fontWeight(.bold).foregroundStyle(.green)
         }
         .padding(.vertical, 2)
@@ -152,7 +153,7 @@ struct DividendDetailView: View {
                 detailRow("Tarih", Formatters.formatDate(dividend.tarih))
                 detailRow("Adet", Formatters.formatDecimal(dividend.adet))
                 detailRow("Birim Temettü", Formatters.formatCurrencyDetailed(dividend.birimTemettu))
-                detailRow("Toplam Tutar", Formatters.formatCurrency(dividend.toplamTutar))
+                detailRow("Toplam Tutar", Formatters.maskedCurrency(dividend.toplamTutar))
                 if let notlar = dividend.notlar, !notlar.isEmpty {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Notlar").font(.subheadline).foregroundStyle(.secondary)

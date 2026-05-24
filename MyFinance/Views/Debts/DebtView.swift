@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct DebtView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Debt.verilenTarih, order: .reverse) private var debts: [Debt]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -38,11 +39,11 @@ struct DebtView: View {
             Section {
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
-                        SummaryCardView(title: "Toplam Borç", value: Formatters.formatCurrency(totalVerilen), icon: "arrow.up.circle", color: .red)
-                        SummaryCardView(title: "Ödenen", value: Formatters.formatCurrency(totalOdenen), icon: "arrow.down.circle", color: .green)
+                        SummaryCardView(title: "Toplam Borç", value: Formatters.maskedCurrency(totalVerilen), icon: "arrow.up.circle", color: .red)
+                        SummaryCardView(title: "Ödenen", value: Formatters.maskedCurrency(totalOdenen), icon: "arrow.down.circle", color: .green)
                     }
                     HStack(spacing: 12) {
-                        SummaryCardView(title: "Kalan", value: Formatters.formatCurrency(totalKalan), icon: "clock", color: .orange)
+                        SummaryCardView(title: "Kalan", value: Formatters.maskedCurrency(totalKalan), icon: "clock", color: .orange)
                         SummaryCardView(title: "Borç Sayısı", value: "\(debts.count)", icon: "number.circle", color: .blue)
                     }
                 }
@@ -142,7 +143,7 @@ struct DebtView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(Formatters.formatCurrency(debt.toplamTutar))
+                    Text(Formatters.maskedCurrency(debt.toplamTutar))
                         .font(.body).fontWeight(.medium)
                     Text(debt.durum)
                         .font(.caption)
@@ -239,10 +240,10 @@ struct DebtDetailView: View {
                         }
                         .frame(height: 10)
                         HStack {
-                            Text("Ödenen: \(Formatters.formatCurrency(debt.genelOdemeTutari))")
+                            Text("Ödenen: \(Formatters.maskedCurrency(debt.genelOdemeTutari))")
                                 .font(.subheadline)
                             Spacer()
-                            Text("Kalan: \(Formatters.formatCurrency(debt.kalanBorc))")
+                            Text("Kalan: \(Formatters.maskedCurrency(debt.kalanBorc))")
                                 .font(.subheadline).fontWeight(.medium)
                         }
                     }
@@ -255,8 +256,8 @@ struct DebtDetailView: View {
                 detailRow("Kime", debt.kpiAdi)
                 detailRow("Tip", debt.tip)
                 detailRow("Miktar", Formatters.formatDecimal(debt.miktar))
-                detailRow("Birim Tutar", Formatters.formatCurrency(debt.birimTutar))
-                detailRow("Toplam Tutar", Formatters.formatCurrency(debt.toplamTutar))
+                detailRow("Birim Tutar", Formatters.maskedCurrency(debt.birimTutar))
+                detailRow("Toplam Tutar", Formatters.maskedCurrency(debt.toplamTutar))
                 detailRow("Para Birimi", debt.paraBirimi)
                 detailRow("Verildiği Tarih", Formatters.formatDate(debt.verilenTarih))
                 if let notlar = debt.notlar, !notlar.isEmpty {
@@ -269,8 +270,8 @@ struct DebtDetailView: View {
 
             // Ödeme Özeti
             Section("Ödeme Özeti") {
-                detailRow("Genel Ödeme Tutarı", Formatters.formatCurrency(debt.genelOdemeTutari))
-                detailRow("Kalan Borç", Formatters.formatCurrency(debt.kalanBorc))
+                detailRow("Genel Ödeme Tutarı", Formatters.maskedCurrency(debt.genelOdemeTutari))
+                detailRow("Kalan Borç", Formatters.maskedCurrency(debt.kalanBorc))
                 detailRow("Ödeme Yüzdesi", "%\(Int(debt.odemeYuzdesi))")
                 detailRow("Ödeme Sayısı", "\(debt.odemeler.count)")
             }
@@ -358,7 +359,7 @@ struct DebtDetailView: View {
                 .foregroundStyle(.green)
                 .font(.title3)
             VStack(alignment: .leading, spacing: 4) {
-                Text("\(Formatters.formatDecimal(payment.miktar)) x \(Formatters.formatCurrency(payment.birimTutar))")
+                Text("\(Formatters.formatDecimal(payment.miktar)) x \(Formatters.maskedCurrency(payment.birimTutar))")
                     .font(.body).fontWeight(.medium)
                 Text(Formatters.formatDate(payment.tarih))
                     .font(.subheadline).foregroundStyle(.secondary)
@@ -367,7 +368,7 @@ struct DebtDetailView: View {
                 }
             }
             Spacer()
-            Text(Formatters.formatCurrency(payment.toplamTutar))
+            Text(Formatters.maskedCurrency(payment.toplamTutar))
                 .font(.body).fontWeight(.bold).foregroundStyle(.green)
         }
         .padding(.vertical, 2)
@@ -440,7 +441,7 @@ struct DebtFormView: View {
                     HStack {
                         Text("Toplam Tutar")
                         Spacer()
-                        Text(Formatters.formatCurrency(hesaplananToplam))
+                        Text(Formatters.maskedCurrency(hesaplananToplam))
                             .fontWeight(.bold)
                             .foregroundStyle(.primary)
                     }
@@ -536,7 +537,7 @@ struct DebtPaymentFormView: View {
                     HStack {
                         Text("Ödeme Toplam Tutarı")
                         Spacer()
-                        Text(Formatters.formatCurrency(hesaplananToplam))
+                        Text(Formatters.maskedCurrency(hesaplananToplam))
                             .fontWeight(.bold).foregroundStyle(.green)
                     }
                 }
@@ -544,20 +545,20 @@ struct DebtPaymentFormView: View {
                 Section("Borç Bilgisi") {
                     HStack {
                         Text("Borç Tutarı"); Spacer()
-                        Text(Formatters.formatCurrency(debt.toplamTutar)).foregroundStyle(.secondary)
+                        Text(Formatters.maskedCurrency(debt.toplamTutar)).foregroundStyle(.secondary)
                     }
                     HStack {
                         Text("Önceki Ödemeler"); Spacer()
-                        Text(Formatters.formatCurrency(debt.genelOdemeTutari)).foregroundStyle(.secondary)
+                        Text(Formatters.maskedCurrency(debt.genelOdemeTutari)).foregroundStyle(.secondary)
                     }
                     HStack {
                         Text("Kalan Borç"); Spacer()
-                        Text(Formatters.formatCurrency(debt.kalanBorc)).fontWeight(.medium).foregroundStyle(.orange)
+                        Text(Formatters.maskedCurrency(debt.kalanBorc)).fontWeight(.medium).foregroundStyle(.orange)
                     }
                     HStack {
                         Text("Bu ödeme sonrası kalan"); Spacer()
                         let yeniKalan = debt.kalanBorc - hesaplananToplam
-                        Text(Formatters.formatCurrency(max(yeniKalan, 0)))
+                        Text(Formatters.maskedCurrency(max(yeniKalan, 0)))
                             .fontWeight(.medium)
                             .foregroundStyle(yeniKalan <= 0 ? .green : .orange)
                     }

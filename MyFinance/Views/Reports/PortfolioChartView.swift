@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct PortfolioChartView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Transaction.tarih) private var transactions: [Transaction]
     @Query(sort: \ExchangeRate.tarih) private var exchangeRates: [ExchangeRate]
     @State private var selectedTimeRange: TimeRange = .all
@@ -192,7 +193,7 @@ struct PortfolioChartView: View {
                                         .fontWeight(.bold)
                                     Text("%\(Int(pct))")
                                         .font(.caption)
-                                    Text(Formatters.formatCurrency(slice.value))
+                                    Text(Formatters.maskedCurrency(slice.value))
                                         .font(.caption2)
                                 }
                                 .foregroundStyle(.white)
@@ -227,7 +228,7 @@ struct PortfolioChartView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .frame(width: 40, alignment: .trailing)
-                                Text(Formatters.formatCurrency(slice.value))
+                                Text(Formatters.maskedCurrency(slice.value))
                                     .font(.body)
                                     .fontWeight(.medium)
                                     .foregroundStyle(.primary)
@@ -278,7 +279,7 @@ struct PortfolioChartView: View {
                         Text("Maliyet")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.maliyet))
+                        Text(Formatters.maskedCurrency(summary.maliyet))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -286,7 +287,7 @@ struct PortfolioChartView: View {
                         Text("Güncel Değer")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.deger))
+                        Text(Formatters.maskedCurrency(summary.deger))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -318,7 +319,7 @@ struct PortfolioChartView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(Formatters.formatCurrency(pos.guncelDeger))
+                        Text(Formatters.maskedCurrency(pos.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                         KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
@@ -360,7 +361,7 @@ struct PortfolioChartView: View {
                         AxisMarks { value in
                             AxisValueLabel {
                                 if let v = value.as(Double.self) {
-                                    Text(Formatters.formatCurrency(v))
+                                    Text(Formatters.maskedCurrency(v))
                                         .font(.caption2)
                                 }
                             }
@@ -391,7 +392,7 @@ struct PortfolioChartView: View {
                     )
                     .foregroundStyle(Color.forType(item.tip))
                     .annotation(position: .trailing) {
-                        Text(Formatters.formatCurrency(item.total))
+                        Text(Formatters.maskedCurrency(item.total))
                             .font(.caption2)
                     }
                 }

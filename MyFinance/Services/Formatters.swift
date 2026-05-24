@@ -56,6 +56,10 @@ enum Formatters {
         currency.string(from: NSNumber(value: value)) ?? "₺0"
     }
 
+    static func maskedCurrency(_ value: Double) -> String {
+        UserDefaults.standard.bool(forKey: "hideBalances") ? "₺ ***" : formatCurrency(value)
+    }
+
     static func formatCurrencyDetailed(_ value: Double) -> String {
         currencyDetailed.string(from: NSNumber(value: value)) ?? "₺0,00"
     }

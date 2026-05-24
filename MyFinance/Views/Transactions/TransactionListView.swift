@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TransactionListView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Transaction.tarih, order: .reverse) private var transactions: [Transaction]
     @Environment(\.modelContext) private var context
     private let catalog = CatalogManager.shared
@@ -230,7 +231,7 @@ struct TransactionListView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 4) {
-                Text("\(tx.isPositive ? "+" : "-")\(Formatters.formatCurrency(tx.tutarTL))")
+                Text("\(tx.isPositive ? "+" : "-")\(Formatters.maskedCurrency(tx.tutarTL))")
                     .font(.body)
                     .fontWeight(.medium)
                     .foregroundStyle(tx.isPositive ? .green : .red)

@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct BESReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \BESHesap.baslangicTarihi) private var hesaplar: [BESHesap]
 
     private var toplamBirikim: Double { hesaplar.reduce(0) { $0 + $1.birikimTutari } }
@@ -17,7 +18,7 @@ struct BESReportView: View {
                 VStack(spacing: 16) {
                     SummaryCardView(
                         title: "Toplam BES Değeri",
-                        value: Formatters.formatCurrency(toplamDeger),
+                        value: Formatters.maskedCurrency(toplamDeger),
                         subtitle: "\(hesaplar.count) hesap",
                         icon: "building.columns.fill",
                         color: .purple
@@ -59,7 +60,7 @@ struct BESReportView: View {
                                             Text(hesap.planAdi).font(.caption).foregroundStyle(.secondary)
                                         }
                                         Spacer()
-                                        Text(Formatters.formatCurrency(hesap.toplamDeger))
+                                        Text(Formatters.maskedCurrency(hesap.toplamDeger))
                                             .font(.subheadline).fontWeight(.bold).foregroundStyle(.purple)
                                     }
                                     Divider()

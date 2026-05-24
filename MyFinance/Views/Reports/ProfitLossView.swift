@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct ProfitLossView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Transaction.tarih) private var transactions: [Transaction]
     @Query(sort: \ExchangeRate.tarih) private var exchangeRates: [ExchangeRate]
     @State private var calculator = PortfolioCalculator()
@@ -40,7 +41,7 @@ struct ProfitLossView: View {
                     VStack {
                         Text("Maliyet")
                             .font(.caption).foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(calculator.portfolioSummary.toplamMaliyet))
+                        Text(Formatters.maskedCurrency(calculator.portfolioSummary.toplamMaliyet))
                             .font(.title3).fontWeight(.medium)
                     }
                     Image(systemName: "arrow.right")
@@ -48,7 +49,7 @@ struct ProfitLossView: View {
                     VStack {
                         Text("Güncel Değer")
                             .font(.caption).foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(calculator.portfolioSummary.toplamDeger))
+                        Text(Formatters.maskedCurrency(calculator.portfolioSummary.toplamDeger))
                             .font(.title3).fontWeight(.medium)
                     }
                 }
@@ -139,10 +140,10 @@ struct ProfitLossView: View {
                             KZBadge(value: kasa.karZarar, percentage: kasa.karZararYuzdesi)
                         }
                         HStack {
-                            Text("Maliyet: \(Formatters.formatCurrency(kasa.toplamMaliyet))")
+                            Text("Maliyet: \(Formatters.maskedCurrency(kasa.toplamMaliyet))")
                                 .font(.caption).foregroundStyle(.secondary)
                             Spacer()
-                            Text("Güncel: \(Formatters.formatCurrency(kasa.guncelDeger))")
+                            Text("Güncel: \(Formatters.maskedCurrency(kasa.guncelDeger))")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                         Divider()
@@ -166,7 +167,7 @@ struct ProfitLossView: View {
                     )
                     .foregroundStyle(ts.karZarar >= 0 ? .green : .red)
                     .annotation(position: ts.karZarar >= 0 ? .trailing : .leading) {
-                        Text(Formatters.formatCurrency(ts.karZarar))
+                        Text(Formatters.maskedCurrency(ts.karZarar))
                             .font(.caption2)
                     }
                 }
@@ -174,7 +175,7 @@ struct ProfitLossView: View {
                     AxisMarks { value in
                         AxisValueLabel {
                             if let v = value.as(Double.self) {
-                                Text(Formatters.formatCurrency(v))
+                                Text(Formatters.maskedCurrency(v))
                                     .font(.caption2)
                             }
                         }
@@ -190,9 +191,9 @@ struct ProfitLossView: View {
                         Text(ts.tip)
                             .font(.caption)
                         Spacer()
-                        Text("Maliyet: \(Formatters.formatCurrency(ts.toplamMaliyet))")
+                        Text("Maliyet: \(Formatters.maskedCurrency(ts.toplamMaliyet))")
                             .font(.caption2).foregroundStyle(.secondary)
-                        Text("Güncel: \(Formatters.formatCurrency(ts.guncelDeger))")
+                        Text("Güncel: \(Formatters.maskedCurrency(ts.guncelDeger))")
                             .font(.caption2).foregroundStyle(.secondary)
                         KZBadge(value: ts.karZarar, percentage: ts.karZararYuzdesi)
                     }

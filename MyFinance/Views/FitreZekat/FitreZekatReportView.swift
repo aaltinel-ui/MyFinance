@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct FitreZekatReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \FitreZekat.tarih, order: .reverse) private var records: [FitreZekat]
 
     private var byPerson: [(kisi: String, tutar: Double)] {
@@ -27,7 +28,7 @@ struct FitreZekatReportView: View {
                 CardView {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Toplam Fitre/Zekât").font(.subheadline).foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(totalAmount)).font(.largeTitle).fontWeight(.bold)
+                        Text(Formatters.maskedCurrency(totalAmount)).font(.largeTitle).fontWeight(.bold)
                         Text("\(records.count) kayıt • \(byPerson.count) kişi").font(.subheadline).foregroundStyle(.secondary)
                     }
                 }
@@ -49,7 +50,7 @@ struct FitreZekatReportView: View {
                                     VStack(spacing: 2) {
                                         Text(item.tur).font(.caption).fontWeight(.bold)
                                         Text("%\(Int(pct))").font(.caption)
-                                        Text(Formatters.formatCurrency(item.tutar)).font(.caption2)
+                                        Text(Formatters.maskedCurrency(item.tutar)).font(.caption2)
                                     }
                                     .foregroundStyle(.white)
                                 }
@@ -63,7 +64,7 @@ struct FitreZekatReportView: View {
                                     Text(item.tur).font(.body)
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
-                                    Text(Formatters.formatCurrency(item.tutar)).font(.body).fontWeight(.medium)
+                                    Text(Formatters.maskedCurrency(item.tutar)).font(.body).fontWeight(.medium)
                                 }
                             }
                         }
@@ -102,7 +103,7 @@ struct FitreZekatReportView: View {
                                     Text(item.kisi).font(.body)
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
-                                    Text(Formatters.formatCurrency(item.tutar)).font(.body).fontWeight(.medium)
+                                    Text(Formatters.maskedCurrency(item.tutar)).font(.body).fontWeight(.medium)
                                 }
                             }
                         }

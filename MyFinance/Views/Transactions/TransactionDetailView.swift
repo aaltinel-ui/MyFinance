@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct TransactionDetailView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
     let transaction: Transaction

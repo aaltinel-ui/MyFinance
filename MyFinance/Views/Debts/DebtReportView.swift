@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct DebtReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Debt.verilenTarih, order: .reverse) private var debts: [Debt]
 
     private var byPerson: [(kisi: String, tutar: Double)] {
@@ -85,7 +86,7 @@ struct DebtReportView: View {
                                     Text(item.kisi).font(.body)
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
-                                    Text(Formatters.formatCurrency(item.tutar)).font(.body).fontWeight(.medium)
+                                    Text(Formatters.maskedCurrency(item.tutar)).font(.body).fontWeight(.medium)
                                 }
                             }
                         }
@@ -124,7 +125,7 @@ struct DebtReportView: View {
                                     Text(item.tip).font(.body)
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
-                                    Text(Formatters.formatCurrency(item.tutar)).font(.body).fontWeight(.medium)
+                                    Text(Formatters.maskedCurrency(item.tutar)).font(.body).fontWeight(.medium)
                                 }
                             }
                         }

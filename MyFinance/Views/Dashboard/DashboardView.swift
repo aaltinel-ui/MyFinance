@@ -509,7 +509,7 @@ struct DashboardView: View {
     }
 
     private func masked(_ value: Double) -> String {
-        hideBalances ? "₺ ***" : masked(value)
+        hideBalances ? "₺ ***" : Formatters.formatCurrency(value)
     }
 
     private func recalculate() {

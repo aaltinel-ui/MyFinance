@@ -10,6 +10,8 @@ import SwiftData
 
 struct ContentView: View {
     @AppStorage("selectedAppMode") private var selectedMode: String = AppMode.myFinans.rawValue
+    @AppStorage("hideBalances") private var hideBalances = false
+    @Environment(\.modelContext) private var context
 
     private var currentMode: AppMode {
         AppMode(rawValue: selectedMode) ?? .myFinans
@@ -24,48 +26,60 @@ struct ContentView: View {
                 .padding(.bottom, 4)
 
             // Mode Content
-            Group {
-                switch currentMode {
-                case .myFinans:
-                    myFinansTabView
-                case .borcTakibi:
-                    borcTakibiTabView
-                case .cocuklarim:
-                    cocuklarimTabView
-                case .fitreZekat:
-                    fitreZekatTabView
-                }
+            if currentMode == .myFinans {
+                myFinansTabView
+            } else if currentMode == .borcTakibi {
+                borcTakibiTabView
+            } else if currentMode == .cocuklarim {
+                cocuklarimTabView
+            } else if currentMode == .fitreZekat {
+                fitreZekatTabView
+            } else {
+                besTabView
             }
         }
         .applyAppFont()
         .applyTheme()
+        .task { seedBESHesaplari() }
     }
 
     private var modePicker: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(AppMode.allCases, id: \.self) { mode in
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedMode = mode.rawValue
+        HStack(spacing: 8) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(AppMode.allCases, id: \.self) { mode in
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedMode = mode.rawValue
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: mode.icon)
+                                    .font(.subheadline)
+                                Text(mode.rawValue)
+                                    .font(.subheadline)
+                                    .fontWeight(currentMode == mode ? .semibold : .regular)
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
+                            .background(currentMode == mode ? mode.color : Color.secondary.opacity(0.12))
+                            .foregroundStyle(currentMode == mode ? .white : .primary)
+                            .clipShape(Capsule())
                         }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: mode.icon)
-                                .font(.subheadline)
-                            Text(mode.rawValue)
-                                .font(.subheadline)
-                                .fontWeight(currentMode == mode ? .semibold : .regular)
-                        }
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(currentMode == mode ? mode.color : Color.secondary.opacity(0.12))
-                        .foregroundStyle(currentMode == mode ? .white : .primary)
-                        .clipShape(Capsule())
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
+
+            Button {
+                withAnimation { hideBalances.toggle() }
+            } label: {
+                Image(systemName: hideBalances ? "eye.slash.fill" : "eye.fill")
+                    .font(.title3)
+                    .foregroundStyle(hideBalances ? .red : .secondary)
+                    .frame(width: 36, height: 36)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -152,6 +166,32 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - BES Tabs
+
+    private var besTabView: some View {
+        TabView {
+            NavigationStack {
+                BESListView()
+                    .navigationTitle("BES Hesaplarım")
+            }
+            .tabItem {
+                Label("Hesaplarım", systemImage: "building.columns.fill")
+            }
+
+            NavigationStack {
+                BESReportView()
+            }
+            .tabItem {
+                Label("Raporlar", systemImage: "chart.pie")
+            }
+
+            SettingsView()
+                .tabItem {
+                    Label("Ayarlar", systemImage: "gear")
+                }
+        }
+    }
+
     // MARK: - Fitre/Zekât Tabs
 
     private var fitreZekatTabView: some View {
@@ -176,6 +216,46 @@ struct ContentView: View {
                     Label("Ayarlar", systemImage: "gear")
                 }
         }
+    }
+}
+
+// MARK: - BES Seed
+
+extension ContentView {
+    private func seedBESHesaplari() {
+        guard !UserDefaults.standard.bool(forKey: "besSeedDone") else { return }
+        let existing = (try? context.fetch(FetchDescriptor<BESHesap>())) ?? []
+        guard existing.isEmpty else {
+            UserDefaults.standard.set(true, forKey: "besSeedDone")
+            return
+        }
+
+        let hesaplar: [(hesapNo: String, planAdi: String, katilimci: String, birikim: Double, notlar: String)] = [
+            ("55613762", "Gruba Bağlı Bireysel Emeklilik Planı", "Alpay Altinel", 53444, "Kendim"),
+            ("55167065", "Bireysel Emeklilik Planı",              "Alpay Altinel", 83485, "Kendim"),
+            ("55167069", "Bireysel Emeklilik Planı",              "Alpay Altinel", 65828, "Kendim"),
+            ("54335449", "İşveren Grup Emeklilik Planı",          "Alpay Altinel", 91720, "İşim"),
+            ("54105548", "Bireysel Emeklilik Planı",              "Alpay Altinel", 438002, "Kendim"),
+            ("47043422", "İşveren Grup Emeklilik Planı",          "Alpay Altinel", 1197241, "İşim"),
+            ("55403319", "Bireysel Emeklilik Planı",              "Nazlı İrem Altinel", 111081, "Ailem - Nazlı İrem"),
+            ("55310718", "Bireysel Emeklilik Planı",              "Nazlı İrem Altinel", 113239, "Ailem - Nazlı İrem"),
+        ]
+
+        for h in hesaplar {
+            context.insert(BESHesap(
+                sirketAdi: "Allianz Yaşam",
+                planAdi: h.planAdi,
+                hesapNo: h.hesapNo,
+                baslangicTarihi: Date(),
+                birikimTutari: h.birikim,
+                devletKatkisi: 0,
+                sirketKatkisi: 0,
+                fonDegeri: 0,
+                notlar: "\(h.katilimci) — \(h.notlar)"
+            ))
+        }
+        try? context.save()
+        UserDefaults.standard.set(true, forKey: "besSeedDone")
     }
 }
 

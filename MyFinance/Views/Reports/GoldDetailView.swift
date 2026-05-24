@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct GoldDetailView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Transaction.tarih) private var transactions: [Transaction]
     @Query(sort: \ExchangeRate.tarih) private var exchangeRates: [ExchangeRate]
     @State private var calculator = PortfolioCalculator()
@@ -46,7 +47,7 @@ struct GoldDetailView: View {
                     Text("Toplam Altın Değeri")
                         .font(.headline)
                 }
-                Text(Formatters.formatCurrency(totalGoldValue))
+                Text(Formatters.maskedCurrency(totalGoldValue))
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 KZBadge(value: totalGoldValue - totalGoldCost, percentage: totalGoldCost > 0 ? ((totalGoldValue - totalGoldCost) / totalGoldCost * 100) : 0)
@@ -90,7 +91,7 @@ struct GoldDetailView: View {
                             }
                             Spacer()
                             VStack(alignment: .trailing) {
-                                Text(Formatters.formatCurrency(pos.guncelDeger))
+                                Text(Formatters.maskedCurrency(pos.guncelDeger))
                                     .font(.subheadline).fontWeight(.medium)
                                 KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
                             }

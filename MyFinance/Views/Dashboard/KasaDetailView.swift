@@ -2,6 +2,7 @@ import SwiftUI
 import Charts
 
 struct KasaDetailView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     let kasaTip: String
     let calculator: PortfolioCalculator
 
@@ -29,14 +30,14 @@ struct KasaDetailView: View {
                 Text("Toplam Değer")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
-                Text(Formatters.formatCurrency(kasa.guncelDeger))
+                Text(Formatters.maskedCurrency(kasa.guncelDeger))
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 KZBadge(value: kasa.karZarar, percentage: kasa.karZararYuzdesi)
                 HStack {
                     Text("Maliyet:")
                         .font(.caption).foregroundStyle(.secondary)
-                    Text(Formatters.formatCurrency(kasa.toplamMaliyet))
+                    Text(Formatters.maskedCurrency(kasa.toplamMaliyet))
                         .font(.caption).fontWeight(.medium)
                 }
             }
@@ -89,7 +90,7 @@ struct KasaDetailView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing) {
-                            Text(Formatters.formatCurrency(pos.guncelDeger))
+                            Text(Formatters.maskedCurrency(pos.guncelDeger))
                                 .font(.subheadline).fontWeight(.medium)
                             KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
                         }

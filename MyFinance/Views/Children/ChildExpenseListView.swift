@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct ChildExpenseListView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \ChildExpense.tarih, order: .reverse) private var expenses: [ChildExpense]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -43,7 +44,7 @@ struct ChildExpenseListView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Toplam TL")
                             .font(.caption).foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(totalSpentTL))
+                        Text(Formatters.maskedCurrency(totalSpentTL))
                             .font(.title3).fontWeight(.bold)
                     }
                     VStack(alignment: .leading, spacing: 4) {
@@ -177,7 +178,7 @@ struct ChildExpenseListView: View {
             }
             Spacer()
             VStack(alignment: .trailing, spacing: 2) {
-                Text(Formatters.formatCurrency(exp.tutar))
+                Text(Formatters.maskedCurrency(exp.tutar))
                     .font(.body).fontWeight(.medium)
                 if exp.eurDegeri > 0 {
                     Text("€\(Int(exp.eurDegeri))")
@@ -219,7 +220,7 @@ struct ChildExpenseDetailView: View {
                         detailRow("Kategori", expense.kategori)
                         detailRow("Açıklama", expense.aciklama)
                         Divider()
-                        detailRow("Tutar (TL)", Formatters.formatCurrency(expense.tutar))
+                        detailRow("Tutar (TL)", Formatters.maskedCurrency(expense.tutar))
                         if expense.eurDegeri > 0 {
                             detailRow("EUR Değeri", "€\(Int(expense.eurDegeri))")
                         }

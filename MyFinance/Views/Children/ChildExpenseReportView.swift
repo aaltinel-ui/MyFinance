@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct ChildExpenseReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \ChildExpense.tarih, order: .reverse) private var expenses: [ChildExpense]
 
     private var byChild: [(cocuk: String, tutarTL: Double, tutarEUR: Double, kayitSayisi: Int)] {
@@ -38,7 +39,7 @@ struct ChildExpenseReportView: View {
                         HStack(spacing: 20) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Toplam TL").font(.caption).foregroundStyle(.secondary)
-                                Text(Formatters.formatCurrency(totalTL)).font(.title2).fontWeight(.bold)
+                                Text(Formatters.maskedCurrency(totalTL)).font(.title2).fontWeight(.bold)
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Toplam EUR").font(.caption).foregroundStyle(.secondary)
@@ -63,7 +64,7 @@ struct ChildExpenseReportView: View {
                                     Text(String(item.yil)).font(.body).fontWeight(.medium)
                                     Spacer()
                                     VStack(alignment: .trailing, spacing: 2) {
-                                        Text(Formatters.formatCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
+                                        Text(Formatters.maskedCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
                                         Text("€\(Int(item.tutarEUR))").font(.caption).foregroundStyle(.blue)
                                     }
                                 }
@@ -110,7 +111,7 @@ struct ChildExpenseReportView: View {
                                         Spacer()
                                         Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
                                         VStack(alignment: .trailing, spacing: 2) {
-                                            Text(Formatters.formatCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
+                                            Text(Formatters.maskedCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
                                             Text("€\(Int(item.tutarEUR))").font(.caption).foregroundStyle(.blue)
                                         }
                                         Image(systemName: "chevron.right")
@@ -158,7 +159,7 @@ struct ChildExpenseReportView: View {
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
                                     VStack(alignment: .trailing, spacing: 2) {
-                                        Text(Formatters.formatCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
+                                        Text(Formatters.maskedCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
                                         Text("€\(Int(item.tutarEUR))").font(.caption).foregroundStyle(.blue)
                                     }
                                 }
@@ -222,7 +223,7 @@ struct ChildDetailReportView: View {
                         HStack(spacing: 20) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Toplam TL").font(.caption).foregroundStyle(.secondary)
-                                Text(Formatters.formatCurrency(totalTL)).font(.title3).fontWeight(.bold)
+                                Text(Formatters.maskedCurrency(totalTL)).font(.title3).fontWeight(.bold)
                             }
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Toplam EUR").font(.caption).foregroundStyle(.secondary)
@@ -262,7 +263,7 @@ struct ChildDetailReportView: View {
                                         VStack(spacing: 2) {
                                             Text(item.kategori).font(.caption).fontWeight(.bold)
                                             Text("%\(Int(pct))").font(.caption2)
-                                            Text(Formatters.formatCurrency(item.tutarTL)).font(.caption2)
+                                            Text(Formatters.maskedCurrency(item.tutarTL)).font(.caption2)
                                         }
                                         .foregroundStyle(.white)
                                     }
@@ -283,7 +284,7 @@ struct ChildDetailReportView: View {
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
                                     VStack(alignment: .trailing, spacing: 2) {
-                                        Text(Formatters.formatCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
+                                        Text(Formatters.maskedCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
                                         Text("€\(Int(item.tutarEUR))").font(.caption).foregroundStyle(.blue)
                                     }
                                 }
@@ -304,7 +305,7 @@ struct ChildDetailReportView: View {
                                 )
                                 .foregroundStyle(.purple.gradient)
                                 .annotation(position: .top) {
-                                    Text(Formatters.formatCurrency(item.tutarTL))
+                                    Text(Formatters.maskedCurrency(item.tutarTL))
                                         .font(.caption2).foregroundStyle(.secondary)
                                 }
                             }
@@ -318,7 +319,7 @@ struct ChildDetailReportView: View {
                                     Spacer()
                                     Text("%\(Int(pct))").font(.subheadline).foregroundStyle(.secondary)
                                     VStack(alignment: .trailing, spacing: 2) {
-                                        Text(Formatters.formatCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
+                                        Text(Formatters.maskedCurrency(item.tutarTL)).font(.body).fontWeight(.medium)
                                         Text("€\(Int(item.tutarEUR))").font(.caption).foregroundStyle(.blue)
                                     }
                                 }
@@ -348,7 +349,7 @@ struct ChildDetailReportView: View {
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 2) {
-                                    Text(Formatters.formatCurrency(exp.tutar)).font(.subheadline).fontWeight(.medium)
+                                    Text(Formatters.maskedCurrency(exp.tutar)).font(.subheadline).fontWeight(.medium)
                                     if exp.eurDegeri > 0 {
                                         Text("€\(Int(exp.eurDegeri))").font(.caption).foregroundStyle(.blue)
                                     }

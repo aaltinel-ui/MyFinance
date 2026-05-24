@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct DividendReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \Dividend.tarih, order: .reverse) private var dividends: [Dividend]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -56,7 +57,7 @@ struct DividendReportView: View {
     private var summaryCard: some View {
         SummaryCardView(
             title: "Toplam Temettü Geliri",
-            value: Formatters.formatCurrency(totalDividend),
+            value: Formatters.maskedCurrency(totalDividend),
             subtitle: "\(dividends.count) temettü ödemesi",
             icon: "chart.bar.fill",
             color: .green
@@ -112,7 +113,7 @@ struct DividendReportView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing) {
-                            Text(Formatters.formatCurrency(div.toplamTutar))
+                            Text(Formatters.maskedCurrency(div.toplamTutar))
                                 .font(.subheadline).fontWeight(.medium).foregroundStyle(.green)
                             Text("\(Formatters.formatDecimal(div.adet)) x \(Formatters.formatCurrencyDetailed(div.birimTemettu))")
                                 .font(.caption2).foregroundStyle(.secondary)

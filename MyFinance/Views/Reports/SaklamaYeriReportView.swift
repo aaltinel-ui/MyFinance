@@ -10,6 +10,7 @@ struct SaklamaSummary: Identifiable {
 }
 
 struct SaklamaYeriReportView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query private var transactions: [Transaction]
 
     private var summaries: [SaklamaSummary] {
@@ -31,7 +32,7 @@ struct SaklamaYeriReportView: View {
                 VStack(spacing: 16) {
                     SummaryCardView(
                         title: "Toplam Saklama Değeri",
-                        value: Formatters.formatCurrency(toplamDeger),
+                        value: Formatters.maskedCurrency(toplamDeger),
                         subtitle: "\(summaries.count) saklama yeri",
                         icon: "building.columns.fill",
                         color: .blue
@@ -79,7 +80,7 @@ struct SaklamaYeriReportView: View {
                 Text(item.saklamaYeri).font(.subheadline).fontWeight(.medium)
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(Formatters.formatCurrency(item.toplamTutar))
+                    Text(Formatters.maskedCurrency(item.toplamTutar))
                         .font(.subheadline).fontWeight(.bold)
                         .foregroundStyle(item.toplamTutar >= 0 ? Color.primary : Color.red)
                     Text("\(item.islemSayisi) işlem")

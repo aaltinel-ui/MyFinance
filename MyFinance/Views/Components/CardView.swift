@@ -73,7 +73,7 @@ struct KZBadge: View {
                 Text("(***)")
                     .font(.caption)
             } else {
-                Text(Formatters.formatCurrency(abs(value)))
+                Text(Formatters.maskedCurrency(abs(value)))
                     .font(.subheadline)
                     .fontWeight(.semibold)
                 Text("(\(Formatters.formatPercent(percentage)))")
@@ -102,7 +102,7 @@ struct ProgressBarView: View {
                 Text(label)
                     .font(.subheadline)
                 Spacer()
-                Text(Formatters.formatCurrency(value))
+                Text(Formatters.maskedCurrency(value))
                     .font(.subheadline)
                     .fontWeight(.medium)
                 Text("(%\(Int(ratio * 100)))")

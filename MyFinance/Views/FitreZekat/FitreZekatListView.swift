@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct FitreZekatListView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \FitreZekat.tarih, order: .reverse) private var records: [FitreZekat]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -32,12 +33,12 @@ struct FitreZekatListView: View {
                     CardView {
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Toplam").font(.subheadline).foregroundStyle(.secondary)
-                            Text(Formatters.formatCurrency(totalAmount)).font(.largeTitle).fontWeight(.bold)
+                            Text(Formatters.maskedCurrency(totalAmount)).font(.largeTitle).fontWeight(.bold)
                         }
                     }
                     HStack(spacing: 12) {
-                        SummaryCardView(title: "Fitre", value: Formatters.formatCurrency(fitreToplam), icon: "hand.raised.fill", color: .green)
-                        SummaryCardView(title: "Zekât", value: Formatters.formatCurrency(zekatToplam), icon: "heart.circle.fill", color: .teal)
+                        SummaryCardView(title: "Fitre", value: Formatters.maskedCurrency(fitreToplam), icon: "hand.raised.fill", color: .green)
+                        SummaryCardView(title: "Zekât", value: Formatters.maskedCurrency(zekatToplam), icon: "heart.circle.fill", color: .teal)
                     }
                 }
 
@@ -140,7 +141,7 @@ struct FitreZekatListView: View {
                 }
             }
             Spacer()
-            Text(Formatters.formatCurrency(rec.tutar))
+            Text(Formatters.maskedCurrency(rec.tutar))
                 .font(.body).fontWeight(.medium)
         }
         .padding(.vertical, 4)
@@ -162,7 +163,7 @@ struct FitreZekatDetailView: View {
                         Text("Kayıt Detayı").font(.headline)
                         detailRow("Tür", record.tur)
                         detailRow("Kişi", record.kisiAdi)
-                        detailRow("Tutar", Formatters.formatCurrency(record.tutar))
+                        detailRow("Tutar", Formatters.maskedCurrency(record.tutar))
                         detailRow("Tarih", Formatters.formatDate(record.tarih))
                         if !record.aciklama.isEmpty {
                             detailRow("Açıklama", record.aciklama)

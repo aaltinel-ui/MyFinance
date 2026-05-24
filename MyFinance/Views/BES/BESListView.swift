@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 struct BESListView: View {
+    @AppStorage("hideBalances") private var hideBalances = false
     @Query(sort: \BESHesap.baslangicTarihi, order: .reverse) private var hesaplar: [BESHesap]
     @Environment(\.modelContext) private var context
     @State private var showingAddSheet = false
@@ -19,12 +20,12 @@ struct BESListView: View {
             Section {
                 VStack(spacing: 12) {
                     HStack(spacing: 12) {
-                        SummaryCardView(title: "Toplam Değer", value: Formatters.formatCurrency(toplamDeger), icon: "building.columns.fill", color: .purple)
-                        SummaryCardView(title: "Birikim", value: Formatters.formatCurrency(toplamBirikim), icon: "banknote", color: .blue)
+                        SummaryCardView(title: "Toplam Değer", value: Formatters.maskedCurrency(toplamDeger), icon: "building.columns.fill", color: .purple)
+                        SummaryCardView(title: "Birikim", value: Formatters.maskedCurrency(toplamBirikim), icon: "banknote", color: .blue)
                     }
                     HStack(spacing: 12) {
-                        SummaryCardView(title: "Devlet Katkısı", value: Formatters.formatCurrency(toplamDevlet), icon: "star.circle", color: .orange)
-                        SummaryCardView(title: "Fon Değeri", value: Formatters.formatCurrency(toplamFon), icon: "chart.pie", color: .green)
+                        SummaryCardView(title: "Devlet Katkısı", value: Formatters.maskedCurrency(toplamDevlet), icon: "star.circle", color: .orange)
+                        SummaryCardView(title: "Fon Değeri", value: Formatters.maskedCurrency(toplamFon), icon: "chart.pie", color: .green)
                     }
                 }
                 .listRowInsets(EdgeInsets())
@@ -91,16 +92,16 @@ struct BESListView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text(Formatters.formatCurrency(hesap.toplamDeger))
+                    Text(Formatters.maskedCurrency(hesap.toplamDeger))
                         .font(.body).fontWeight(.bold)
                     Text("Toplam Değer")
                         .font(.caption).foregroundStyle(.secondary)
                 }
             }
             HStack(spacing: 12) {
-                Label(Formatters.formatCurrency(hesap.birikimTutari), systemImage: "banknote")
+                Label(Formatters.maskedCurrency(hesap.birikimTutari), systemImage: "banknote")
                     .font(.caption).foregroundStyle(.blue)
-                Label(Formatters.formatCurrency(hesap.devletKatkisi), systemImage: "star.circle")
+                Label(Formatters.maskedCurrency(hesap.devletKatkisi), systemImage: "star.circle")
                     .font(.caption).foregroundStyle(.orange)
             }
         }
@@ -132,7 +133,7 @@ struct BESDetailView: View {
                     HStack {
                         Text("Toplam Değer").foregroundStyle(.secondary)
                         Spacer()
-                        Text(Formatters.formatCurrency(hesap.toplamDeger))
+                        Text(Formatters.maskedCurrency(hesap.toplamDeger))
                             .font(.title3).fontWeight(.bold).foregroundStyle(.purple)
                     }
                 }
@@ -151,11 +152,11 @@ struct BESDetailView: View {
             }
 
             Section("Değer Detayı") {
-                detailRow("Birikim Tutarı", Formatters.formatCurrency(hesap.birikimTutari))
-                detailRow("Devlet Katkısı", Formatters.formatCurrency(hesap.devletKatkisi))
-                detailRow("Şirket Katkısı", Formatters.formatCurrency(hesap.sirketKatkisi))
-                detailRow("Fon Değeri", Formatters.formatCurrency(hesap.fonDegeri))
-                detailRow("Toplam Değer", Formatters.formatCurrency(hesap.toplamDeger))
+                detailRow("Birikim Tutarı", Formatters.maskedCurrency(hesap.birikimTutari))
+                detailRow("Devlet Katkısı", Formatters.maskedCurrency(hesap.devletKatkisi))
+                detailRow("Şirket Katkısı", Formatters.maskedCurrency(hesap.sirketKatkisi))
+                detailRow("Fon Değeri", Formatters.maskedCurrency(hesap.fonDegeri))
+                detailRow("Toplam Değer", Formatters.maskedCurrency(hesap.toplamDeger))
             }
 
             Section {
@@ -224,7 +225,7 @@ struct BESFormView: View {
                     HStack {
                         Text("Toplam Değer")
                         Spacer()
-                        Text(Formatters.formatCurrency(hesaplananToplam)).fontWeight(.bold)
+                        Text(Formatters.maskedCurrency(hesaplananToplam)).fontWeight(.bold)
                     }
                 }
 
