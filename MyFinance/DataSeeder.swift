@@ -62,6 +62,38 @@ struct DataSeeder {
             ))
         }
 
+        // Transaction seed — FROTO alış 18/05/2026
+        let frotoTarih = date(2026, 5, 18)
+        let existingTx = (try? context.fetch(FetchDescriptor<Transaction>())) ?? []
+        let frotoAlreadyExists = existingTx.contains {
+            $0.islem == "FROTO" &&
+            abs($0.adet - 608) < 0.01 &&
+            Calendar.current.isDate($0.tarih, inSameDayAs: frotoTarih)
+        }
+        if !frotoAlreadyExists {
+            let tx = Transaction(
+                tarih: frotoTarih,
+                kasaTip: .birikim,
+                islem: "FROTO",
+                tip: .hisse,
+                nerede: .banka,
+                guncellenecekMi: true,
+                yon: .alindi,
+                birimFiyat: 88.40,
+                adet: 608,
+                notlar: "Ford Otomotiv Sanayi A.Ş. — Yapı Kredi Yatırım"
+            )
+            context.insert(tx)
+        }
+
         try? context.save()
+    }
+}
+
+private extension DataSeeder {
+    static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
+        var c = DateComponents()
+        c.year = year; c.month = month; c.day = day
+        return Calendar.current.date(from: c) ?? Date()
     }
 }
