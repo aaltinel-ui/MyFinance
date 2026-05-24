@@ -65,7 +65,6 @@ struct TransactionListView: View {
                     }
                 }
             }
-            .refreshable {}
             .searchable(text: $searchText, prompt: "Hareket ara...")
             .navigationTitle("Hareketler")
             .toolbar {
