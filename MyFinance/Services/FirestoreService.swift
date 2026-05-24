@@ -184,6 +184,7 @@ final class FirestoreService {
 
     // MARK: - Download All
 
+    @MainActor
     func downloadAll(context: ModelContext) async throws -> String {
         var log = ""
         let tx  = try await downloadTransactions(context: context)
@@ -205,6 +206,7 @@ final class FirestoreService {
     // Not: kasaTip/tip/nerede/yon stringleri kullanıcıya özgü olabilir (enum dışı).
     // Guard yerine fallback kullanılır, asıl string değer sonradan atanır.
     @discardableResult
+    @MainActor
     private func downloadTransactions(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("transactions").getDocuments()
         let total = snapshot.documents.count
@@ -252,6 +254,7 @@ final class FirestoreService {
     // MARK: - Download Dividends
 
     @discardableResult
+    @MainActor
     private func downloadDividends(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("dividends").getDocuments()
         let total = snapshot.documents.count
@@ -276,6 +279,7 @@ final class FirestoreService {
     // MARK: - Download Child Expenses
 
     @discardableResult
+    @MainActor
     private func downloadChildExpenses(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("childExpenses").getDocuments()
         let total = snapshot.documents.count
@@ -303,6 +307,7 @@ final class FirestoreService {
     // MARK: - Download Debts
 
     @discardableResult
+    @MainActor
     private func downloadDebts(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("debts").getDocuments()
         let total = snapshot.documents.count
@@ -341,6 +346,7 @@ final class FirestoreService {
     // MARK: - Download Exchange Rates
 
     @discardableResult
+    @MainActor
     private func downloadExchangeRates(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("exchangeRates").getDocuments()
         let total = snapshot.documents.count
@@ -383,6 +389,7 @@ final class FirestoreService {
     // MARK: - Download Fitre & Zekat
 
     @discardableResult
+    @MainActor
     private func downloadFitreZekat(context: ModelContext) async throws -> String {
         let snapshot = try await db.collection("fitreZekat").getDocuments()
         let total = snapshot.documents.count
