@@ -412,7 +412,12 @@ struct SettingsView: View {
             do {
                 let log = try await FirestoreService.shared.downloadAll(context: context)
                 lastSyncDateInterval = Date().timeIntervalSince1970
-                syncStatus = "✅ İndirme tamamlandı\n\(log)"
+
+                // Kaç kayıt gerçekten SwiftData'da var diye kontrol et
+                let txCount  = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
+                let exCount  = (try? context.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
+                syncStatus = "✅ Tamamlandı\n\(log)\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
+
                 // Dashboard ve diğer görünümlere yeniden hesaplamaları için sinyal ver
                 NotificationCenter.default.post(name: .myFinanceDataDownloaded, object: nil)
             } catch {

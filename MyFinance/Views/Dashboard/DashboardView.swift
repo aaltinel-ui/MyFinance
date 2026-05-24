@@ -54,7 +54,10 @@ struct DashboardView: View {
             .onChange(of: transactions.count) { recalculate() }
             .onChange(of: exchangeRates.count) { recalculate() }
             .onReceive(NotificationCenter.default.publisher(for: .myFinanceDataDownloaded)) { _ in
-                recalculate()
+                // @Query'nin SwiftData değişikliğini alması için kısa gecikme
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    recalculate()
+                }
             }
         }
     }

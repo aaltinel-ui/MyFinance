@@ -26,16 +26,24 @@ struct ContentView: View {
                 .padding(.bottom, 4)
 
             // Mode Content
-            if currentMode == .myFinans {
+            // ZStack + opacity: mode geçişinde view'lar destroy/recreate olmaz,
+            // DashboardView @State (calculator, @Query) korunur.
+            ZStack {
                 myFinansTabView
-            } else if currentMode == .borcTakibi {
+                    .opacity(currentMode == .myFinans ? 1 : 0)
+                    .allowsHitTesting(currentMode == .myFinans)
                 borcTakibiTabView
-            } else if currentMode == .cocuklarim {
+                    .opacity(currentMode == .borcTakibi ? 1 : 0)
+                    .allowsHitTesting(currentMode == .borcTakibi)
                 cocuklarimTabView
-            } else if currentMode == .fitreZekat {
+                    .opacity(currentMode == .cocuklarim ? 1 : 0)
+                    .allowsHitTesting(currentMode == .cocuklarim)
                 fitreZekatTabView
-            } else {
+                    .opacity(currentMode == .fitreZekat ? 1 : 0)
+                    .allowsHitTesting(currentMode == .fitreZekat)
                 besTabView
+                    .opacity(currentMode == .bes ? 1 : 0)
+                    .allowsHitTesting(currentMode == .bes)
             }
         }
         .applyAppFont()
