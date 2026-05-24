@@ -193,9 +193,16 @@ struct ReportsTabView: View {
                 }
 
                 NavigationLink {
+                    DividendListView()
+                } label: {
+                    Label("Temettü Listesi", systemImage: "list.bullet.rectangle")
+                        .foregroundStyle(.green)
+                }
+
+                NavigationLink {
                     DividendReportView()
                 } label: {
-                    Label("Temettü Gelirleri", systemImage: "chart.bar.fill")
+                    Label("Temettü Raporu", systemImage: "chart.bar.fill")
                         .foregroundStyle(.green)
                 }
 
@@ -204,6 +211,27 @@ struct ReportsTabView: View {
                 } label: {
                     Label("Portföy Grafikleri", systemImage: "chart.xyaxis.line")
                         .foregroundStyle(.blue)
+                }
+
+                NavigationLink {
+                    SaklamaYeriReportView()
+                } label: {
+                    Label("Saklama Yeri Raporu", systemImage: "building.columns")
+                        .foregroundStyle(.purple)
+                }
+
+                NavigationLink {
+                    NavigationStack { BESListView().navigationTitle("BES Hesapları") }
+                } label: {
+                    Label("BES Hesapları", systemImage: "building.columns.fill")
+                        .foregroundStyle(.indigo)
+                }
+
+                NavigationLink {
+                    BESReportView()
+                } label: {
+                    Label("BES Raporu", systemImage: "chart.pie.fill")
+                        .foregroundStyle(.indigo)
                 }
             }
             .navigationTitle("Raporlar")

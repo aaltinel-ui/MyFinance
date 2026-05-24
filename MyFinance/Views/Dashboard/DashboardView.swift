@@ -11,6 +11,7 @@ struct DashboardView: View {
     @State private var chartAngleSelection: Double?
     @State private var selectedKasa: String?
     @State private var kasaChartAngleSelection: Double?
+    @AppStorage("hideBalances") private var hideBalances = false
 
     private var latestRate: ExchangeRate? { exchangeRates.last }
 
@@ -34,6 +35,14 @@ struct DashboardView: View {
             .toolbar {
                 ToolbarItem(placement: .automatic) {
                     Button {
+                        withAnimation { hideBalances.toggle() }
+                    } label: {
+                        Image(systemName: hideBalances ? "eye.slash.fill" : "eye.fill")
+                            .foregroundStyle(hideBalances ? .red : .primary)
+                    }
+                }
+                ToolbarItem(placement: .automatic) {
+                    Button {
                         Task { await refreshPrices() }
                     } label: {
                         Label("Güncelle", systemImage: isRefreshing ? "arrow.clockwise" : "arrow.triangle.2.circlepath")
@@ -53,7 +62,7 @@ struct DashboardView: View {
                 Text("Toplam Varlığım")
                     .font(.body)
                     .foregroundStyle(.secondary)
-                Text(Formatters.formatCurrency(calculator.portfolioSummary.toplamDeger))
+                Text(masked(calculator.portfolioSummary.toplamDeger))
                     .font(.largeTitle)
                     .fontWeight(.bold)
                 KZBadge(
@@ -64,7 +73,7 @@ struct DashboardView: View {
                     Text("Maliyet:")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(Formatters.formatCurrency(calculator.portfolioSummary.toplamMaliyet))
+                    Text(masked(calculator.portfolioSummary.toplamMaliyet))
                         .font(.subheadline)
                         .fontWeight(.medium)
                 }
@@ -104,7 +113,7 @@ struct DashboardView: View {
                         .font(.body)
                         .fontWeight(.medium)
                 }
-                Text(Formatters.formatCurrency(kasa.guncelDeger))
+                Text(masked(kasa.guncelDeger))
                     .font(.title2)
                     .fontWeight(.bold)
                 KZBadge(value: kasa.karZarar, percentage: kasa.karZararYuzdesi)
@@ -163,7 +172,7 @@ struct DashboardView: View {
                                 .font(.body)
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Text(Formatters.formatCurrency(ts.guncelDeger))
+                            Text(masked(ts.guncelDeger))
                                 .font(.body)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.primary)
@@ -241,7 +250,7 @@ struct DashboardView: View {
                                 .font(.body)
                                 .foregroundStyle(.primary)
                             Spacer()
-                            Text(Formatters.formatCurrency(ks.guncelDeger))
+                            Text(masked(ks.guncelDeger))
                                 .font(.body)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.primary)
@@ -304,7 +313,7 @@ struct DashboardView: View {
                         Text("Maliyet")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.toplamMaliyet))
+                        Text(masked(summary.toplamMaliyet))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -312,7 +321,7 @@ struct DashboardView: View {
                         Text("Güncel Değer")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.guncelDeger))
+                        Text(masked(summary.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -338,7 +347,7 @@ struct DashboardView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(Formatters.formatCurrency(pos.guncelDeger))
+                        Text(masked(pos.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                         KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
@@ -392,7 +401,7 @@ struct DashboardView: View {
                         Text("Maliyet")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.toplamMaliyet))
+                        Text(masked(summary.toplamMaliyet))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -400,7 +409,7 @@ struct DashboardView: View {
                         Text("Güncel Değer")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
-                        Text(Formatters.formatCurrency(summary.guncelDeger))
+                        Text(masked(summary.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                     }
@@ -421,7 +430,7 @@ struct DashboardView: View {
                     }
                     Spacer()
                     VStack(alignment: .trailing, spacing: 4) {
-                        Text(Formatters.formatCurrency(pos.guncelDeger))
+                        Text(masked(pos.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                         KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
@@ -453,7 +462,7 @@ struct DashboardView: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
-                            Text(Formatters.formatCurrency(pos.guncelDeger))
+                            Text(masked(pos.guncelDeger))
                                 .font(.body)
                                 .fontWeight(.medium)
                             KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
@@ -486,7 +495,7 @@ struct DashboardView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
-                        Text("\(tx.isPositive ? "+" : "-")\(Formatters.formatCurrency(tx.tutarTL))")
+                        Text(hideBalances ? "₺ ***" : "\(tx.isPositive ? "+" : "-")\(masked(tx.tutarTL))")
                             .font(.body)
                             .fontWeight(.medium)
                             .foregroundStyle(tx.isPositive ? .green : .red)
@@ -497,6 +506,10 @@ struct DashboardView: View {
                 }
             }
         }
+    }
+
+    private func masked(_ value: Double) -> String {
+        hideBalances ? "₺ ***" : masked(value)
     }
 
     private func recalculate() {

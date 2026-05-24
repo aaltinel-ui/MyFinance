@@ -26,7 +26,8 @@ struct MyFinanceApp: App {
             DebtPayment.self,
             ExchangeRate.self,
             ChildExpense.self,
-            FitreZekat.self
+            FitreZekat.self,
+            BESHesap.self
         ])
     }
 }

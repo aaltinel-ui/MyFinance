@@ -60,16 +60,25 @@ struct SummaryCardView: View {
 struct KZBadge: View {
     let value: Double
     let percentage: Double
+    @AppStorage("hideBalances") private var hideBalances = false
 
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: value >= 0 ? "arrow.up.right" : "arrow.down.right")
                 .font(.caption)
-            Text(Formatters.formatCurrency(abs(value)))
-                .font(.subheadline)
-                .fontWeight(.semibold)
-            Text("(\(Formatters.formatPercent(percentage)))")
-                .font(.caption)
+            if hideBalances {
+                Text("₺ ***")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("(***)")
+                    .font(.caption)
+            } else {
+                Text(Formatters.formatCurrency(abs(value)))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("(\(Formatters.formatPercent(percentage)))")
+                    .font(.caption)
+            }
         }
         .foregroundStyle(value >= 0 ? .green : .red)
         .padding(.horizontal, 10)
