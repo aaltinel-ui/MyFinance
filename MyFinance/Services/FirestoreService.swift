@@ -198,11 +198,7 @@ final class FirestoreService {
         let ex  = try await downloadExchangeRates(context: context)
         log += "Kur: \(ex)\n"
         let fz  = try await downloadFitreZekat(context: context)
-        log += "Fitre/Zekât: \(fz)\n"
-        // downloadAll içi doğrulama
-        let finalTx = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-        let finalEx = (try? context.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
-        log += "🔍 fn-içi: \(finalTx) tx, \(finalEx) ex"
+        log += "Fitre/Zekât: \(fz)"
         return log
     }
 
@@ -251,16 +247,13 @@ final class FirestoreService {
             context.insert(t)
             added += 1
         }
-        // Save öncesi: context'teki pending insert sayısı
-        let beforeSave = context.insertedModelsArray.count
         do {
             try context.save()
         } catch {
             return "\(added) yeni / \(total) toplam [SAVE HATA: \(error)]"
         }
-        // Save sonrası: persistent store'daki kayıt sayısı
         let afterSave = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-        return "\(added) yeni / \(total) toplam [pending:\(beforeSave) after:\(afterSave)]"
+        return "\(added) yeni / \(total) toplam [after:\(afterSave)]"
     }
 
     // MARK: - Download Dividends

@@ -415,15 +415,27 @@ struct SettingsView: View {
         Task { @MainActor in
             do {
                 let freshCtx = ModelContext(dlContainer)
+
+                // ── TEMEL INSERT TESTİ (Firestore olmadan) ──────────────────
+                let testTx = Transaction(
+                    tarih: Date(), kasaTip: .birikim, islem: "TEST_INSERT",
+                    tip: .hisse, nerede: .banka, yon: .arti,
+                    birimFiyat: 1, adet: 1)
+                freshCtx.insert(testTx)
+                let testPending = freshCtx.insertedModelsArray.count
+                try? freshCtx.save()
+                let testAfter = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
+                // Test kaydını temizle
+                freshCtx.delete(testTx)
+                try? freshCtx.save()
+                // ────────────────────────────────────────────────────────────
+
                 let log = try await FirestoreService.shared.downloadAll(context: freshCtx)
                 lastSyncDateInterval = Date().timeIntervalSince1970
+                let txCount = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
+                let exCount = (try? freshCtx.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
+                syncStatus = "✅ Tamamlandı\n\(log)\n🧪 test[p:\(testPending) a:\(testAfter)]\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
 
-                // Kaç kayıt gerçekten SwiftData'da var diye kontrol et
-                let txCount  = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-                let exCount  = (try? freshCtx.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
-                syncStatus = "✅ Tamamlandı\n\(log)\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
-
-                // Dashboard ve diğer görünümlere yeniden hesaplamaları için sinyal ver
                 NotificationCenter.default.post(name: .myFinanceDataDownloaded, object: nil)
             } catch {
                 syncStatus = "❌ Hata: \(error.localizedDescription)"
