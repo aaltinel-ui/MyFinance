@@ -6,10 +6,14 @@ enum BuildInfo {
     static let commitHash = "dd750c6"
     static let buildDate  = "30.05.2026"
 
-    /// Ayarlar ekranında gösterilecek versiyon metni
+    /// Ayarlar ekranında gösterilecek versiyon metni (sondaki -YYYY-MM-DD tarih eki çıkarılır)
     static let displayVersion: String = {
         let name = branch.replacingOccurrences(of: "release/", with: "")
                          .replacingOccurrences(of: "claude/", with: "")
-        return name
+        return name.replacingOccurrences(
+            of: #"-\d{4}-\d{2}-\d{2}$"#,
+            with: "",
+            options: .regularExpression
+        )
     }()
 }
