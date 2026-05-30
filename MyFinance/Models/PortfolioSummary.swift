@@ -55,3 +55,16 @@ struct KasaSummary: Identifiable {
     }
     var positions: [InstrumentPosition]
 }
+
+struct SaklamaOzeti: Identifiable {
+    let id = UUID()
+    let saklamaYeri: String
+    var toplamMaliyet: Double
+    var guncelDeger: Double
+    var karZarar: Double { guncelDeger - toplamMaliyet }
+    var karZararYuzdesi: Double {
+        guard toplamMaliyet > 0 else { return 0 }
+        return (karZarar / toplamMaliyet) * 100
+    }
+    var positions: [InstrumentPosition]
+}

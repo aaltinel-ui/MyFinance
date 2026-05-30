@@ -34,6 +34,8 @@ enum BirimTip: String, Codable, CaseIterable, Identifiable {
     case hisse = "HİSSE"
     case coin = "COIN"
     case altin = "ALTIN"
+    case gumus = "GÜMÜŞ"
+    case doviz = "DÖVİZ"
     case fon = "FON"
     case maas = "Maaş"
     case promosyon = "Promosyon"
@@ -49,6 +51,8 @@ enum BirimTip: String, Codable, CaseIterable, Identifiable {
         case .hisse: return "chart.line.uptrend.xyaxis"
         case .coin: return "bitcoinsign.circle"
         case .altin: return "circle.fill"
+        case .gumus: return "circle.circle"
+        case .doviz: return "dollarsign.circle"
         case .fon: return "chart.pie"
         case .maas: return "briefcase"
         case .promosyon: return "gift"
@@ -64,6 +68,8 @@ enum BirimTip: String, Codable, CaseIterable, Identifiable {
         case .hisse: return "blue"
         case .coin: return "orange"
         case .altin: return "yellow"
+        case .gumus: return "mint"
+        case .doviz: return "cyan"
         case .fon: return "green"
         case .maas: return "teal"
         case .promosyon: return "pink"
@@ -72,6 +78,24 @@ enum BirimTip: String, Codable, CaseIterable, Identifiable {
         case .vadeli: return "brown"
         case .nakit: return "gray"
         }
+    }
+
+    /// Enstrüman adına göre doğru tipi döner (yanlış kategorize edilmiş kayıtları normalize eder).
+    /// Örn. EURO → DÖVİZ, "Gram Gümüş" → GÜMÜŞ.
+    static func normalizedTip(islem: String, tip: String) -> String {
+        let ad = islem
+            .folding(options: .diacriticInsensitive, locale: Locale(identifier: "tr_TR"))
+            .uppercased()
+
+        // Gümüş içeren her şey → GÜMÜŞ
+        if ad.contains("GUMUS") { return BirimTip.gumus.rawValue }
+
+        // Bilinen döviz birimleri → DÖVİZ
+        let dovizler: Set<String> = ["EURO", "EUR", "DOLAR", "DOLLAR", "USD",
+                                     "STERLIN", "GBP", "FRANK", "CHF", "YEN", "JPY"]
+        if dovizler.contains(ad) { return BirimTip.doviz.rawValue }
+
+        return tip
     }
 }
 
@@ -82,6 +106,15 @@ enum SaklamaYeri: String, Codable, CaseIterable, Identifiable {
     case babam = "BABAM"
 
     var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .banka: return "building.columns"
+        case .binanceTR: return "bitcoinsign.circle"
+        case .evde: return "house.fill"
+        case .babam: return "person.fill"
+        }
+    }
 }
 
 enum HareketYon: String, Codable, CaseIterable, Identifiable {

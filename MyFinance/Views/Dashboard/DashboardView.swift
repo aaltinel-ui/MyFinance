@@ -9,9 +9,11 @@ struct DashboardView: View {
     @State private var isRefreshing = false
     @State private var selectedType: String?
     @State private var chartAngleSelection: Double?
-    @State private var selectedKasa: String?
-    @State private var kasaChartAngleSelection: Double?
     @AppStorage("hideBalances") private var hideBalances = false
+    // Tip grubu akordiyon: tip adı → açık mı?
+    @State private var expandedTypes: Set<String> = []
+    // Enstrüman akordiyon: "tip|islem" → açık mı?
+    @State private var expandedInstrument: Set<String> = []
 
     private var latestRate: ExchangeRate? { exchangeRates.last }
 
@@ -20,9 +22,8 @@ struct DashboardView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     totalSummaryCard
-                    kasaCardsSection
                     portfolioDistributionChart
-                    kasaDistributionChart
+                    portfoyTipleriSection
                     topPositionsSection
                     recentTransactionsSection
                 }
@@ -87,47 +88,6 @@ struct DashboardView: View {
         }
     }
 
-    private var kasaCardsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Kasalarım")
-                .font(.title3)
-                .fontWeight(.bold)
-                .padding(.leading, 4)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 12) {
-                    ForEach(calculator.kasaSummaries) { kasa in
-                        NavigationLink(destination: KasaDetailView(kasaTip: kasa.kasaTip, calculator: calculator)) {
-                            kasaCard(kasa)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-        }
-    }
-
-    private func kasaCard(_ kasa: KasaSummary) -> some View {
-        CardView {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    if let kt = KasaTip(rawValue: kasa.kasaTip) {
-                        Image(systemName: kt.icon)
-                            .font(.title3)
-                            .foregroundStyle(Color.forKasa(kasa.kasaTip))
-                    }
-                    Text(kasa.kasaTip)
-                        .font(.body)
-                        .fontWeight(.medium)
-                }
-                Text(masked(kasa.guncelDeger))
-                    .font(.title2)
-                    .fontWeight(.bold)
-                KZBadge(value: kasa.karZarar, percentage: kasa.karZararYuzdesi)
-            }
-            .frame(minWidth: 180)
-        }
-    }
-
     private var portfolioDistributionChart: some View {
         CardView {
             VStack(alignment: .leading, spacing: 14) {
@@ -182,9 +142,13 @@ struct DashboardView: View {
                                 .font(.body)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.primary)
-                            Image(systemName: "chevron.right")
+                            let pct = calculator.portfolioSummary.toplamDeger > 0
+                                ? ts.guncelDeger / calculator.portfolioSummary.toplamDeger * 100
+                                : 0
+                            Text("%\(Int(pct))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
+                                .frame(width: 44, alignment: .trailing)
                         }
                         .padding(.vertical, 6)
                         .padding(.horizontal, 10)
@@ -193,178 +157,8 @@ struct DashboardView: View {
                     }
                     .buttonStyle(.plain)
                 }
-
-                if let selected = selectedType {
-                    typeDetailSection(for: selected)
-                }
             }
         }
-    }
-
-    private var kasaDistributionChart: some View {
-        CardView {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Kasa Dağılımı")
-                    .font(.title3)
-                    .fontWeight(.bold)
-                Chart(calculator.kasaSummaries) { ks in
-                    SectorMark(
-                        angle: .value("Değer", ks.guncelDeger),
-                        innerRadius: .ratio(0.6),
-                        angularInset: 2
-                    )
-                    .foregroundStyle(Color.forKasa(ks.kasaTip))
-                    .opacity(selectedKasa == nil || selectedKasa == ks.kasaTip ? 1.0 : 0.4)
-                    .annotation(position: .overlay) {
-                        let pct = calculator.portfolioSummary.toplamDeger > 0
-                            ? ks.guncelDeger / calculator.portfolioSummary.toplamDeger * 100
-                            : 0
-                        if pct > 5 {
-                            VStack(spacing: 2) {
-                                Text(ks.kasaTip)
-                                    .font(.subheadline)
-                                    .fontWeight(.bold)
-                                Text("%\(Int(pct))")
-                                    .font(.subheadline)
-                            }
-                            .foregroundStyle(.white)
-                        }
-                    }
-                }
-                .frame(height: 260)
-                .chartAngleSelection(value: $kasaChartAngleSelection)
-                .onChange(of: kasaChartAngleSelection) { _, newValue in
-                    selectedKasa = findKasa(for: newValue)
-                }
-
-                ForEach(calculator.kasaSummaries) { ks in
-                    Button {
-                        withAnimation {
-                            selectedKasa = selectedKasa == ks.kasaTip ? nil : ks.kasaTip
-                        }
-                    } label: {
-                        HStack {
-                            Circle()
-                                .fill(Color.forKasa(ks.kasaTip))
-                                .frame(width: 12, height: 12)
-                            if let kt = KasaTip(rawValue: ks.kasaTip) {
-                                Image(systemName: kt.icon)
-                                    .font(.subheadline)
-                                    .foregroundStyle(Color.forKasa(ks.kasaTip))
-                            }
-                            Text(ks.kasaTip)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            Text(masked(ks.guncelDeger))
-                                .font(.body)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.primary)
-                            Image(systemName: "chevron.right")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 10)
-                        .background(selectedKasa == ks.kasaTip ? Color.forKasa(ks.kasaTip).opacity(0.12) : Color.clear)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                if let selected = selectedKasa {
-                    kasaDetailSection(for: selected)
-                }
-            }
-        }
-    }
-
-    private func findKasa(for value: Double?) -> String? {
-        guard let value else { return nil }
-        var cumulative: Double = 0
-        for ks in calculator.kasaSummaries {
-            cumulative += ks.guncelDeger
-            if value <= cumulative {
-                return ks.kasaTip
-            }
-        }
-        return nil
-    }
-
-    private func kasaDetailSection(for kasaTip: String) -> some View {
-        let positions = calculator.positions(for: kasaTip)
-        let summary = calculator.kasaSummaries.first { $0.kasaTip == kasaTip }
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Divider()
-
-            HStack {
-                Text("\(kasaTip) Detayı")
-                    .font(.body)
-                    .fontWeight(.bold)
-                Spacer()
-                Button {
-                    withAnimation { selectedKasa = nil }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if let summary {
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Maliyet")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(masked(summary.toplamMaliyet))
-                            .font(.body)
-                            .fontWeight(.medium)
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Güncel Değer")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(masked(summary.guncelDeger))
-                            .font(.body)
-                            .fontWeight(.medium)
-                    }
-                    Spacer()
-                    KZBadge(value: summary.karZarar, percentage: summary.karZararYuzdesi)
-                }
-            }
-
-            ForEach(positions) { pos in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(pos.islem)
-                            .font(.body)
-                            .fontWeight(.medium)
-                        HStack(spacing: 6) {
-                            Text(pos.tip)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            Text("\(Formatters.formatDecimal(pos.toplamAdet)) adet")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
-                        Text(masked(pos.guncelDeger))
-                            .font(.body)
-                            .fontWeight(.medium)
-                        KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
-                    }
-                }
-                if pos.id != positions.last?.id {
-                    Divider()
-                }
-            }
-        }
-        .padding(.top, 4)
     }
 
     private func findType(for value: Double?) -> String? {
@@ -379,92 +173,254 @@ struct DashboardView: View {
         return nil
     }
 
-    private func typeDetailSection(for tip: String) -> some View {
-        let positions = calculator.positions(for: nil, tip: tip)
-        let summary = calculator.typeSummaries.first { $0.tip == tip }
+    // MARK: - Portföy (Tip Bazlı Akordiyon)
 
-        return VStack(alignment: .leading, spacing: 12) {
-            Divider()
-
-            HStack {
-                Text("\(tip) Detayı")
-                    .font(.body)
-                    .fontWeight(.bold)
-                Spacer()
-                Button {
-                    withAnimation { selectedType = nil }
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title3)
+    private var portfoyTipleriSection: some View {
+        VStack(spacing: 14) {
+            if calculator.typeSummaries.isEmpty {
+                CardView {
+                    Text("Portföy pozisyonu bulunamadı.")
+                        .font(.subheadline)
                         .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 8)
+                }
+            } else {
+                ForEach(calculator.typeSummaries) { ts in
+                    tipGrubuCard(ts)
+                }
+            }
+        }
+    }
+
+    private func tipGrubuCard(_ ts: TypeSummary) -> some View {
+        let isOpen  = expandedTypes.contains(ts.tip)
+        let consPoz = calculator.consolidatedPositions(tip: ts.tip)
+
+        return CardView {
+            VStack(alignment: .leading, spacing: 0) {
+                // — Tip başlığı (1. kademe akordiyon) —
+                Button {
+                    withAnimation(.easeInOut(duration: 0.22)) {
+                        if isOpen { expandedTypes.remove(ts.tip) }
+                        else      { expandedTypes.insert(ts.tip) }
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.forType(ts.tip).opacity(0.12))
+                                .frame(width: 36, height: 36)
+                            if let bt = BirimTip(rawValue: ts.tip) {
+                                Image(systemName: bt.icon)
+                                    .foregroundStyle(Color.forType(ts.tip))
+                            }
+                        }
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(ts.tip)
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.primary)
+                            Text("\(consPoz.count) enstrüman")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        VStack(alignment: .trailing, spacing: 3) {
+                            Text(masked(ts.guncelDeger))
+                                .font(.body)
+                                .fontWeight(.semibold)
+                            KZBadge(value: ts.karZarar, percentage: ts.karZararYuzdesi)
+                        }
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isOpen ? 90 : 0))
+                            .animation(.easeInOut(duration: 0.22), value: isOpen)
+                            .padding(.leading, 2)
+                    }
+                    .contentShape(Rectangle())
+                    .padding(.vertical, 4)
                 }
                 .buttonStyle(.plain)
-            }
 
-            if let summary {
-                HStack(spacing: 20) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Maliyet")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(masked(summary.toplamMaliyet))
-                            .font(.body)
-                            .fontWeight(.medium)
+                // — Konsolide enstrüman listesi —
+                if isOpen {
+                    VStack(spacing: 0) {
+                        Divider().padding(.top, 8)
+                        ForEach(Array(consPoz.enumerated()), id: \.offset) { index, pos in
+                            enstrumanRow(pos: pos, tip: ts.tip, showDivider: index > 0)
+                        }
                     }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Güncel Değer")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Text(masked(summary.guncelDeger))
-                            .font(.body)
-                            .fontWeight(.medium)
-                    }
-                    Spacer()
-                    KZBadge(value: summary.karZarar, percentage: summary.karZararYuzdesi)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .move(edge: .top)),
+                        removal:   .opacity.combined(with: .move(edge: .top))
+                    ))
                 }
             }
+        }
+    }
 
-            ForEach(positions) { pos in
-                HStack {
-                    VStack(alignment: .leading, spacing: 4) {
+    // Enstrüman akordiyon anahtarı: "tip|islem" (konsolide)
+    private func enstrumanKey(_ pos: InstrumentPosition, tip: String) -> String { "\(tip)|\(pos.islem)" }
+
+    private func enstrumanRow(pos: InstrumentPosition, tip: String, showDivider: Bool) -> some View {
+        let key        = enstrumanKey(pos, tip: tip)
+        let isExpanded = expandedInstrument.contains(key)
+        let kasaList   = calculator.kasaBreakdown(islem: pos.islem, tip: tip)
+
+        return VStack(spacing: 0) {
+            if showDivider { Divider() }
+
+            // — Özet satırı —
+            Button {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    if isExpanded { expandedInstrument.remove(key) }
+                    else          { expandedInstrument.insert(key) }
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    VStack(alignment: .leading, spacing: 3) {
                         Text(pos.islem)
                             .font(.body)
-                            .fontWeight(.medium)
-                        Text("\(Formatters.formatDecimal(pos.toplamAdet)) adet")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.primary)
+                        // Toplam adet her zaman görünür
+                        HStack(spacing: 6) {
+                            Text("\(Formatters.formatDecimal(pos.toplamAdet)) adet")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            if kasaList.count > 1 {
+                                Text("\(kasaList.count) kasa")
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color.secondary.opacity(0.12))
+                                    .clipShape(Capsule())
+                            } else if let k = kasaList.first {
+                                Text(k.kasaTip)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color.forKasa(k.kasaTip).opacity(0.15))
+                                    .foregroundStyle(Color.forKasa(k.kasaTip))
+                                    .clipShape(Capsule())
+                            }
+                        }
                     }
                     Spacer()
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .trailing, spacing: 3) {
                         Text(masked(pos.guncelDeger))
                             .font(.body)
                             .fontWeight(.medium)
                         KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
                     }
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                        .animation(.easeInOut(duration: 0.22), value: isExpanded)
+                        .padding(.leading, 2)
                 }
-                if pos.id != positions.last?.id {
-                    Divider()
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            // — Detay paneli —
+            if isExpanded {
+                VStack(spacing: 0) {
+                    hisseDetailRow("Toplam Adet",   icon: "number",
+                                   value: Formatters.formatDecimal(pos.toplamAdet), color: .primary)
+                    hisseDetailRow("Ort. Alış",     icon: "arrow.down.circle",
+                                   value: Formatters.formatCurrencyDetailed(pos.ortalamaAlisFiyati), color: .primary)
+                    hisseDetailRow("Güncel Fiyat",  icon: "chart.line.uptrend.xyaxis",
+                                   value: Formatters.formatCurrencyDetailed(pos.guncelFiyat), color: .primary)
+                    hisseDetailRow("Maliyet",       icon: "banknote",
+                                   value: masked(pos.toplamMaliyet), color: .primary)
+                    hisseDetailRow("Güncel Değer",  icon: "chart.bar.fill",
+                                   value: masked(pos.guncelDeger), color: .primary)
+                    hisseDetailRow("Kar / Zarar",
+                                   icon: pos.isKarda ? "arrow.up.right.circle.fill" : "arrow.down.right.circle.fill",
+                                   value: (pos.isKarda ? "+" : "") + masked(pos.karZarar),
+                                   color: pos.isKarda ? .green : .red)
+
+                    // Birden fazla kasada varsa dağılım göster
+                    if kasaList.count > 1 {
+                        Divider().padding(.vertical, 6)
+                        Text("Kasa Dağılımı")
+                            .font(.caption2).fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.bottom, 4)
+                        ForEach(kasaList) { k in
+                            HStack {
+                                Text(k.kasaTip)
+                                    .font(.caption2)
+                                    .padding(.horizontal, 6).padding(.vertical, 2)
+                                    .background(Color.forKasa(k.kasaTip).opacity(0.15))
+                                    .foregroundStyle(Color.forKasa(k.kasaTip))
+                                    .clipShape(Capsule())
+                                Text("\(Formatters.formatDecimal(k.toplamAdet)) adet")
+                                    .font(.caption2).foregroundStyle(.secondary)
+                                Spacer()
+                                Text(masked(k.guncelDeger))
+                                    .font(.caption2).fontWeight(.medium)
+                                KZBadge(value: k.karZarar, percentage: k.karZararYuzdesi)
+                            }
+                            .padding(.vertical, 3)
+                        }
+                    }
                 }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.07))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.bottom, 8)
+                .transition(.asymmetric(
+                    insertion: .opacity.combined(with: .move(edge: .top)),
+                    removal:   .opacity.combined(with: .move(edge: .top))
+                ))
             }
         }
-        .padding(.top, 4)
+    }
+
+    private func hisseDetailRow(_ label: String, icon: String, value: String, color: Color) -> some View {
+        HStack {
+            Label(label, systemImage: icon)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundStyle(color)
+        }
+        .padding(.vertical, 5)
     }
 
     private var topPositionsSection: some View {
-        CardView {
+        // Konsolide: aynı enstrüman tüm kasalarda toplanıp tek satır
+        let topPoz = Array(calculator.consolidatedPositions().prefix(5))
+        return CardView {
             VStack(alignment: .leading, spacing: 10) {
                 Text("En Büyük Pozisyonlar")
                     .font(.title3)
                     .fontWeight(.bold)
-                ForEach(Array(calculator.positions.prefix(5))) { pos in
+                ForEach(Array(topPoz.enumerated()), id: \.offset) { index, pos in
                     HStack {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(pos.islem)
                                 .font(.body)
                                 .fontWeight(.medium)
-                            Text(pos.tip)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 6) {
+                                Text(pos.tip)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text("\(Formatters.formatDecimal(pos.toplamAdet)) adet")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 4) {
@@ -474,7 +430,7 @@ struct DashboardView: View {
                             KZBadge(value: pos.karZarar, percentage: pos.karZararYuzdesi)
                         }
                     }
-                    if pos.id != calculator.positions.prefix(5).last?.id {
+                    if index < topPoz.count - 1 {
                         Divider()
                     }
                 }

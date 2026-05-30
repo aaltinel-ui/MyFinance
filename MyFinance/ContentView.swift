@@ -98,9 +98,9 @@ struct ContentView: View {
                     Label("K/Z", systemImage: "chart.line.uptrend.xyaxis")
                 }
 
-            ReportsTabView()
+            ReportsHubView()
                 .tabItem {
-                    Label("Raporlar", systemImage: "chart.bar")
+                    Label("Raporlar", systemImage: "chart.bar.doc.horizontal")
                 }
 
             SettingsView()
@@ -255,65 +255,6 @@ extension ContentView {
     }
 }
 
-// MARK: - MyFinans Reports Sub-View
-
-struct ReportsTabView: View {
-    var body: some View {
-        NavigationStack {
-            List {
-                NavigationLink {
-                    GoldDetailView()
-                } label: {
-                    Label("Altın Varlıklarım", systemImage: "circle.fill")
-                        .foregroundStyle(.yellow)
-                }
-
-                NavigationLink {
-                    DividendListView()
-                } label: {
-                    Label("Temettü Listesi", systemImage: "list.bullet.rectangle")
-                        .foregroundStyle(.green)
-                }
-
-                NavigationLink {
-                    DividendReportView()
-                } label: {
-                    Label("Temettü Raporu", systemImage: "chart.bar.fill")
-                        .foregroundStyle(.green)
-                }
-
-                NavigationLink {
-                    PortfolioChartView()
-                } label: {
-                    Label("Portföy Grafikleri", systemImage: "chart.xyaxis.line")
-                        .foregroundStyle(.blue)
-                }
-
-                NavigationLink {
-                    SaklamaYeriReportView()
-                } label: {
-                    Label("Saklama Yeri Raporu", systemImage: "building.columns")
-                        .foregroundStyle(.purple)
-                }
-
-                NavigationLink {
-                    NavigationStack { BESListView().navigationTitle("BES Hesapları") }
-                } label: {
-                    Label("BES Hesapları", systemImage: "building.columns.fill")
-                        .foregroundStyle(.indigo)
-                }
-
-                NavigationLink {
-                    BESReportView()
-                } label: {
-                    Label("BES Raporu", systemImage: "chart.pie.fill")
-                        .foregroundStyle(.indigo)
-                }
-            }
-            .navigationTitle("Raporlar")
-        }
-    }
-}
 
 #Preview {
     ContentView()

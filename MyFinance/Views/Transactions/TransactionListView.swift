@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UniformTypeIdentifiers
 
 struct TransactionListView: View {
     @AppStorage("hideBalances") private var hideBalances = false
@@ -13,6 +14,11 @@ struct TransactionListView: View {
     @State private var bulkDeleteTip: String?
     @State private var bulkDeleteKasa: String?
     @State private var transactionToDelete: Transaction?
+    // YKY PDF Aktarma
+    @State private var showingPDFPicker = false
+    @State private var ykyRows: [YKYPDFImportService.ParsedRow] = []
+    @State private var showingYKYImport = false
+    @State private var pdfError: String?
     @State private var searchText = ""
     @State private var selectedKasa: String?
     @State private var selectedTip: String?
@@ -99,6 +105,12 @@ struct TransactionListView: View {
                         .disabled(transactions.isEmpty)
 
                         Button {
+                            showingPDFPicker = true
+                        } label: {
+                            Label("PDF'den Aktar", systemImage: "doc.badge.arrow.up")
+                        }
+
+                        Button {
                             showingAddSheet = true
                         } label: {
                             Label("Ekle", systemImage: "plus")
@@ -108,6 +120,26 @@ struct TransactionListView: View {
             }
             .sheet(isPresented: $showingAddSheet) {
                 TransactionFormView()
+            }
+            // YKY PDF dosya seçici
+            .fileImporter(
+                isPresented: $showingPDFPicker,
+                allowedContentTypes: [UTType.pdf],
+                allowsMultipleSelection: false
+            ) { result in
+                handlePDFPick(result)
+            }
+            // YKY PDF önizleme / aktarma ekranı
+            .sheet(isPresented: $showingYKYImport) {
+                YKYPDFImportView(rows: ykyRows)
+            }
+            .alert("PDF Okunamadı", isPresented: .init(
+                get: { pdfError != nil },
+                set: { if !$0 { pdfError = nil } }
+            )) {
+                Button("Tamam", role: .cancel) { pdfError = nil }
+            } message: {
+                Text(pdfError ?? "")
             }
             .alert("Hareketi Sil", isPresented: $showingDeleteAlert) {
                 Button("İptal", role: .cancel) {
@@ -241,5 +273,27 @@ struct TransactionListView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    // MARK: - YKY PDF Handler
+
+    private func handlePDFPick(_ result: Result<[URL], Error>) {
+        switch result {
+        case .failure(let err):
+            pdfError = err.localizedDescription
+        case .success(let urls):
+            guard let url = urls.first else { return }
+            // Security-scoped resource erişimi
+            let accessing = url.startAccessingSecurityScopedResource()
+            defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+
+            let parsed = YKYPDFImportService.parse(url: url)
+            if parsed.isEmpty {
+                pdfError = "Bu PDF'de Yapı Kredi hisse işlemi satırı bulunamadı.\n\nDosyanın 'HİSSE SENEDİ İŞLEMLERİ' raporu olduğundan emin olun."
+            } else {
+                ykyRows = parsed
+                showingYKYImport = true
+            }
+        }
     }
 }

@@ -6,6 +6,7 @@ class PortfolioCalculator {
     var positions: [InstrumentPosition] = []
     var typeSummaries: [TypeSummary] = []
     var kasaSummaries: [KasaSummary] = []
+    var saklamaSummaries: [SaklamaOzeti] = []
     var portfolioSummary = PortfolioSummary()
 
     func calculate(transactions: [Transaction], latestRates: ExchangeRate?) {
@@ -78,6 +79,51 @@ class PortfolioCalculator {
             )
         }.sorted { $0.guncelDeger > $1.guncelDeger }
 
+        // Saklama yeri (nerede) bazlı pozisyonlar — kasaTip alanında saklama yerini taşır
+        var neredeMap: [String: InstrumentPosition] = [:]
+        for tx in transactions {
+            let key = "\(tx.nerede)|\(tx.islem)"
+            if var pos = neredeMap[key] {
+                if tx.isPositive {
+                    pos.toplamMaliyet += tx.tutarTL
+                    pos.toplamAdet += tx.adet
+                } else {
+                    let ratio = min(tx.adet / pos.toplamAdet, 1.0)
+                    pos.toplamMaliyet -= pos.toplamMaliyet * ratio
+                    pos.toplamAdet -= tx.adet
+                }
+                pos.guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
+                neredeMap[key] = pos
+            } else {
+                let guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
+                neredeMap[key] = InstrumentPosition(
+                    islem: tx.islem,
+                    tip: tx.tip,
+                    kasaTip: tx.nerede,
+                    toplamAdet: tx.isPositive ? tx.adet : -tx.adet,
+                    toplamMaliyet: tx.isPositive ? tx.tutarTL : -tx.tutarTL,
+                    guncelFiyat: guncelFiyat
+                )
+            }
+        }
+        let neredePositions = neredeMap.values.filter { $0.toplamAdet > 0 }
+        var saklamaMap: [String: (maliyet: Double, deger: Double, positions: [InstrumentPosition])] = [:]
+        for pos in neredePositions {
+            var entry = saklamaMap[pos.kasaTip] ?? (0, 0, [])
+            entry.maliyet += pos.toplamMaliyet
+            entry.deger += pos.guncelDeger
+            entry.positions.append(pos)
+            saklamaMap[pos.kasaTip] = entry
+        }
+        saklamaSummaries = saklamaMap.map { key, val in
+            SaklamaOzeti(
+                saklamaYeri: key,
+                toplamMaliyet: val.maliyet,
+                guncelDeger: val.deger,
+                positions: val.positions.sorted { $0.guncelDeger > $1.guncelDeger }
+            )
+        }.sorted { $0.guncelDeger > $1.guncelDeger }
+
         // Portfolio summary
         portfolioSummary.toplamMaliyet = positions.reduce(0) { $0 + $1.toplamMaliyet }
         portfolioSummary.toplamDeger = positions.reduce(0) { $0 + $1.guncelDeger }
@@ -88,6 +134,36 @@ class PortfolioCalculator {
             (kasaTip == nil || pos.kasaTip == kasaTip) &&
             (tip == nil || pos.tip == tip)
         }
+    }
+
+    /// Tüm kasaları birleştirir; aynı enstrümanı tek satırda gösterir.
+    func consolidatedPositions(tip: String? = nil) -> [InstrumentPosition] {
+        let source = tip != nil ? positions.filter { $0.tip == tip } : positions
+        var map: [String: InstrumentPosition] = [:]
+        for pos in source {
+            if var existing = map[pos.islem] {
+                existing.toplamAdet    += pos.toplamAdet
+                existing.toplamMaliyet += pos.toplamMaliyet
+                // fiyat aynı enstrümanda aynı olmalı; üst değeri koru
+                map[pos.islem] = existing
+            } else {
+                map[pos.islem] = InstrumentPosition(
+                    islem: pos.islem,
+                    tip: pos.tip,
+                    kasaTip: "",          // Konsolide → kasa yok
+                    toplamAdet: pos.toplamAdet,
+                    toplamMaliyet: pos.toplamMaliyet,
+                    guncelFiyat: pos.guncelFiyat
+                )
+            }
+        }
+        return map.values.sorted { $0.guncelDeger > $1.guncelDeger }
+    }
+
+    /// Belirli bir enstrümanın kasa bazlı dağılımını döner (konsolide detayı için).
+    func kasaBreakdown(islem: String, tip: String) -> [InstrumentPosition] {
+        positions.filter { $0.islem == islem && $0.tip == tip }
+                 .sorted { $0.guncelDeger > $1.guncelDeger }
     }
 
     func goldPositions(kasaTip: String? = nil) -> [InstrumentPosition] {

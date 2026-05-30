@@ -32,9 +32,9 @@ final class ExchangeRate {
 
     func price(for instrument: String) -> Double? {
         switch instrument {
-        case "ALTIN GRAM": return altinGram
-        case "Euro": return euro
-        case "Usd": return usd
+        case "ALTIN GRAM", "24 Ayar Gram Altın", "Gram Altın": return altinGram
+        case "Euro", "EURO", "EUR": return euro
+        case "Usd", "USD", "Dolar", "DOLAR": return usd
         case "Çeyrek Altın": return ceyrekAltin
         case "Cumhuriyet Altın": return cumhuriyetAltin
         case "Yarım Altın": return yarimAltin

@@ -239,7 +239,9 @@ final class FirestoreService {
                 adet: dbl(d, "adet"),
                 notlar: d["notlar"] as? String
             )
-            t.kasaTip = kasaTipStr; t.tip = tipStr; t.nerede = neredeStr; t.yon = yonStr
+            let islemAdi = d["islem"] as? String ?? ""
+            let normTip  = BirimTip.normalizedTip(islem: islemAdi, tip: tipStr)
+            t.kasaTip = kasaTipStr; t.tip = normTip; t.nerede = neredeStr; t.yon = yonStr
             // tutarTL'yi Firestore'dan gelen değerle override et (birimFiyat*adet'ten farklı olabilir)
             let tutarTL = dbl(d, "tutarTL")
             if tutarTL > 0 { t.tutarTL = tutarTL }
@@ -247,13 +249,8 @@ final class FirestoreService {
             context.insert(t)
             added += 1
         }
-        do {
-            try context.save()
-        } catch {
-            return "\(added) yeni / \(total) toplam [SAVE HATA: \(error)]"
-        }
-        let afterSave = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-        return "\(added) yeni / \(total) toplam [after:\(afterSave)]"
+        try context.save()
+        return "\(added) yeni / \(total) toplam"
     }
 
     // MARK: - Download Dividends

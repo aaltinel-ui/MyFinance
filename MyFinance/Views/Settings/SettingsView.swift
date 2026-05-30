@@ -408,42 +408,13 @@ struct SettingsView: View {
     private func downloadFromFirebase() {
         isSyncing = true
         syncStatus = "İndiriliyor..."
-        // @Environment(\.modelContext) async task'larda çalışmayabilir.
-        // Container'dan taze bir context oluştur — bu her zaman geçerlidir.
-        // context.container üzerinden taze context — @Environment async'de güvenli değil
-        let dlContainer = context.container
         Task { @MainActor in
             do {
-                let freshCtx = ModelContext(dlContainer)
-
-                // ── SCHEMA + INSERT TESTİ ───────────────────────────────────
-                // 1) Schema'daki entity isimleri
-                let entityNames = dlContainer.schema.entities.map { $0.name }.sorted().joined(separator: ",")
-
-                // 2) Transaction insert testi
-                let testTx = Transaction(
-                    tarih: Date(), kasaTip: .birikim, islem: "TEST_INSERT",
-                    tip: .hisse, nerede: .banka, yon: .arti,
-                    birimFiyat: 1, adet: 1)
-                freshCtx.insert(testTx)
-                try? freshCtx.save()
-                let txTest = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-                freshCtx.delete(testTx); try? freshCtx.save()
-
-                // 3) ExchangeRate insert testi (diğer model çalışıyor mu?)
-                let testEx = ExchangeRate(tarih: Date())
-                freshCtx.insert(testEx)
-                try? freshCtx.save()
-                let exTest = (try? freshCtx.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
-                freshCtx.delete(testEx); try? freshCtx.save()
-                // ────────────────────────────────────────────────────────────
-
-                let log = try await FirestoreService.shared.downloadAll(context: freshCtx)
+                let log = try await FirestoreService.shared.downloadAll(context: context)
                 lastSyncDateInterval = Date().timeIntervalSince1970
-                let txCount = (try? freshCtx.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
-                let exCount = (try? freshCtx.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
-                syncStatus = "✅ Tamamlandı\n\(log)\n🧪 tx:\(txTest) ex:\(exTest)\n📋 schema:\(entityNames)\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
-
+                let txCount = (try? context.fetch(FetchDescriptor<Transaction>()))?.count ?? -1
+                let exCount = (try? context.fetch(FetchDescriptor<ExchangeRate>()))?.count ?? -1
+                syncStatus = "✅ Tamamlandı\n\(log)\n📦 SwiftData: \(txCount) işlem, \(exCount) kur"
                 NotificationCenter.default.post(name: .myFinanceDataDownloaded, object: nil)
             } catch {
                 syncStatus = "❌ Hata: \(error.localizedDescription)"
