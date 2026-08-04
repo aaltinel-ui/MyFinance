@@ -21,13 +21,17 @@ struct GoldCatalogView: View {
             }
 
             Section {
-                HStack {
-                    TextField("Özel altın türü ekle", text: $newGold)
-                    Button("Ekle") {
-                        addGold()
-                    }
-                    .disabled(newGold.trimmingCharacters(in: .whitespaces).isEmpty)
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Özel altın türü ekle", text: $newGold)
+                    .onSubmit { addGold() }
+
+                Button("Ekle") {
+                    addGold()
                 }
+                .disabled(newGold.trimmingCharacters(in: .whitespaces).isEmpty)
             }
 
             if !goldCatalog.isEmpty {

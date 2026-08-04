@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StockCatalogView: View {
+    @AppStorage("collectAPIKey") private var apiKey = ""
     @State private var stockCatalog: [String] = UserDefaults.standard.stringArray(forKey: "stockKey") ?? ["KCHOL", "TUPRS", "THYAO", "ALFAS", "ARCLK", "AKBNK"]
     @State private var newStock = ""
     @State private var stockToDelete: String?
@@ -8,18 +9,30 @@ struct StockCatalogView: View {
 
     var body: some View {
         Form {
-            Section {
-                HStack {
-                    TextField("Hisse kodu (ör: FROTO)", text: $newStock)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                    Button("Ekle") {
-                        addStock()
-                    }
-                    .disabled(newStock.trimmingCharacters(in: .whitespaces).isEmpty)
+            if apiKey.trimmingCharacters(in: .whitespaces).isEmpty {
+                Section {
+                    Label("Canlı fiyat güncellemesi için Ayarlar'dan CollectAPI anahtarınızı girmeniz gerekiyor. Anahtar girilmeden hisseler eski fiyatlarında kalır.", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
+            }
+
+            Section {
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Hisse kodu (ör: FROTO)", text: $newStock)
+                    .textInputAutocapitalization(.characters)
+                    .autocorrectionDisabled()
+                    .onSubmit { addStock() }
+
+                Button("Ekle") {
+                    addStock()
+                }
+                .disabled(newStock.trimmingCharacters(in: .whitespaces).isEmpty)
             } footer: {
-                Text("BIST hisse kodunu girin. Fiyatlar Yahoo Finance'den otomatik güncellenir.")
+                Text("BIST hisse kodunu girin. Buraya eklenen hisseler Dashboard'daki \"Güncelle\" ile canlı fiyat alır ve hareket eklerken hızlı seçim listesinde görünür.")
                     .font(.caption)
             }
 

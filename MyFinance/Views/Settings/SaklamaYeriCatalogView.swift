@@ -21,13 +21,17 @@ struct SaklamaYeriCatalogView: View {
             }
 
             Section {
-                HStack {
-                    TextField("Saklama yeri adı...", text: $newSaklama)
-                    Button("Ekle") {
-                        addSaklama()
-                    }
-                    .disabled(newSaklama.trimmingCharacters(in: .whitespaces).isEmpty)
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Saklama yeri adı...", text: $newSaklama)
+                    .onSubmit { addSaklama() }
+
+                Button("Ekle") {
+                    addSaklama()
                 }
+                .disabled(newSaklama.trimmingCharacters(in: .whitespaces).isEmpty)
             } header: {
                 Text("Yeni Saklama Yeri Ekle")
             }

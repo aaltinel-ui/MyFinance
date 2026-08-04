@@ -122,7 +122,10 @@ struct TransactionFormView: View {
 
     private var suggestedInstruments: [String] {
         switch BirimTip(rawValue: tipStr) {
-        case .hisse: return ["TUPRS", "KCHOL", "AKBNK", "THYAO", "ALFAS", "ARCLK"]
+        // Hisse Senedi Kataloğu'ndan (Ayarlar) dinamik olarak okunur, böylece
+        // sonradan eklenen semboller (ör. DMLKT) de burada görünür.
+        case .hisse: return UserDefaults.standard.stringArray(forKey: "stockKey")
+            ?? ["TUPRS", "KCHOL", "AKBNK", "THYAO", "ALFAS", "ARCLK"]
         case .altin: return ["ALTIN GRAM", "Cumhuriyet Altın", "Çeyrek Altın", "Yarım Altın"]
         case .coin: return ["BITCOIN/TRY", "ETH/TRY"]
         case .fon: return ["YFBL1", "YFBL7", "YFBA1", "YFAI1", "YFAE2"]

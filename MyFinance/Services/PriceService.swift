@@ -118,7 +118,10 @@ actor PriceService {
         return (btc, eth)
     }
 
-    func fetchAllPrices() async -> ExchangeRate {
+    /// Tüm fiyatları günceller. `previous` verilirse, canlı kaynaktan çekilemeyen
+    /// alanlar (ör. API anahtarı eksikse veya bir istek başarısız olursa) `nil`
+    /// ile ezilmez — bir önceki bilinen değer korunur.
+    func fetchAllPrices(previous: ExchangeRate? = nil) async -> ExchangeRate {
         let rate = ExchangeRate(tarih: Date())
 
         async let goldTask = try? fetchGoldPrices()
@@ -129,30 +132,44 @@ actor PriceService {
         let currency = await currencyTask
         let crypto = await cryptoTask
 
-        rate.altinGram = gold?.gram
-        rate.ceyrekAltin = gold?.ceyrek
-        rate.yarimAltin = gold?.yarim
-        rate.cumhuriyetAltin = gold?.cumhuriyet
-        rate.euro = currency?.eur
-        rate.usd = currency?.usd
-        rate.bitcoinTRY = crypto?.btc
-        rate.ethTRY = crypto?.eth
+        rate.altinGram       = gold?.gram       ?? previous?.altinGram
+        rate.ceyrekAltin     = gold?.ceyrek     ?? previous?.ceyrekAltin
+        rate.yarimAltin      = gold?.yarim      ?? previous?.yarimAltin
+        rate.cumhuriyetAltin = gold?.cumhuriyet ?? previous?.cumhuriyetAltin
+        rate.euro            = currency?.eur    ?? previous?.euro
+        rate.usd             = currency?.usd    ?? previous?.usd
+        rate.bitcoinTRY      = crypto?.btc      ?? previous?.bitcoinTRY
+        rate.ethTRY          = crypto?.eth      ?? previous?.ethTRY
+        // Fon fiyatlarının canlı kaynağı yok — bir önceki bilinen değeri taşı
+        rate.yfbl1 = previous?.yfbl1
+        rate.yfbl7 = previous?.yfbl7
+        rate.yfba1 = previous?.yfba1
+        rate.yfai1 = previous?.yfai1
+        rate.yfae2 = previous?.yfae2
 
-        // BIST stocks - fetch individually
-        let stocks = ["KCHOL", "TUPRS", "THYAO", "ALFAS", "ARCLK", "AKBNK"]
-        for stock in stocks {
-            if let price = try? await fetchBISTPrice(symbol: stock) {
-                switch stock {
-                case "KCHOL": rate.kchol = price
-                case "TUPRS": rate.tuprs = price
-                case "THYAO": rate.thyao = price
-                case "ALFAS": rate.alfas = price
-                case "ARCLK": rate.arclk = price
-                case "AKBNK": rate.akbnk = price
-                default: break
-                }
+        // BIST hisseleri — sabit liste değil, kullanıcının Hisse Senedi
+        // Kataloğu'ndan (Ayarlar) dinamik olarak okunur, böylece DMLKT gibi
+        // sonradan eklenen semboller de canlı fiyat alır.
+        let catalog = UserDefaults.standard.stringArray(forKey: "stockKey")
+            ?? ["KCHOL", "TUPRS", "THYAO", "ALFAS", "ARCLK", "AKBNK"]
+
+        var extra = previous?.extraStocks ?? [:]
+        for stock in catalog {
+            let fetched: Double? = try? await fetchBISTPrice(symbol: stock)
+            let price = fetched ?? extra[stock]
+
+            switch stock {
+            case "KCHOL": rate.kchol = price
+            case "TUPRS": rate.tuprs = price
+            case "THYAO": rate.thyao = price
+            case "ALFAS": rate.alfas = price
+            case "ARCLK": rate.arclk = price
+            case "AKBNK": rate.akbnk = price
+            default: break
             }
+            if let price { extra[stock] = price }
         }
+        rate.extraStocks = extra
 
         return rate
     }

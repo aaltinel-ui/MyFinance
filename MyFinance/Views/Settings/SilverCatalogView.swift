@@ -21,13 +21,17 @@ struct SilverCatalogView: View {
             }
 
             Section {
-                HStack {
-                    TextField("Özel gümüş türü ekle", text: $newSilver)
-                    Button("Ekle") {
-                        addSilver()
-                    }
-                    .disabled(newSilver.trimmingCharacters(in: .whitespaces).isEmpty)
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Özel gümüş türü ekle", text: $newSilver)
+                    .onSubmit { addSilver() }
+
+                Button("Ekle") {
+                    addSilver()
                 }
+                .disabled(newSilver.trimmingCharacters(in: .whitespaces).isEmpty)
             }
 
             if !silverCatalog.isEmpty {

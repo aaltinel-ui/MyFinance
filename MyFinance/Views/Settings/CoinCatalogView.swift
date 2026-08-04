@@ -19,15 +19,19 @@ struct CoinCatalogView: View {
                 }
             }
             SwiftUI.Section(footer: Text("Bitcoin ve Ethereum fiyatları CoinGecko API'den otomatik güncellenir.")) {
-                HStack {
-                    TextField("Coin adı (ör: SOL)", text: $newCoin)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                    Button("Ekle") {
-                        addCoin()
-                    }
-                    .disabled(newCoin.trimmingCharacters(in: .whitespaces).isEmpty)
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Coin adı (ör: SOL)", text: $newCoin)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                    .onSubmit { addCoin() }
+
+                Button("Ekle") {
+                    addCoin()
                 }
+                .disabled(newCoin.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             if !coinCatalog.isEmpty {
                 SwiftUI.Section(header: Text("Eklenen Coinler")) {

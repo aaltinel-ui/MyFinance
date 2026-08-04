@@ -3,6 +3,7 @@ import SwiftData
 import Charts
 
 struct DashboardView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query(sort: \Transaction.tarih) private var transactions: [Transaction]
     @Query(sort: \ExchangeRate.tarih) private var exchangeRates: [ExchangeRate]
     @State private var calculator = PortfolioCalculator()
@@ -42,14 +43,6 @@ struct DashboardView: View {
                             .foregroundStyle(hideBalances ? .red : .primary)
                     }
                 }
-                ToolbarItem(placement: .automatic) {
-                    Button {
-                        Task { await refreshPrices() }
-                    } label: {
-                        Label("Güncelle", systemImage: isRefreshing ? "arrow.clockwise" : "arrow.triangle.2.circlepath")
-                    }
-                    .disabled(isRefreshing)
-                }
             }
             .onAppear { recalculate() }
             .onChange(of: transactions.count) { recalculate() }
@@ -66,12 +59,37 @@ struct DashboardView: View {
     private var totalSummaryCard: some View {
         CardView {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Toplam Varlığım")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                Text(masked(calculator.portfolioSummary.toplamDeger))
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                // Not: Mac Catalyst'te bir HStack içinde Spacer() veya
+                // .frame(maxWidth: .infinity) gibi "esnek genişleyen" bir
+                // eleman olduğunda, o elemanın SAĞINDAKİ Button'ların
+                // hit-test alanı bozuluyor (tıklamalar aksiyonu tetiklemiyor).
+                // Bu yüzden Güncelle butonunu ayrı, sabit boyutlu bir satırda
+                // tutuyoruz.
+                Button {
+                    Task { await refreshPrices() }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("Güncelle")
+                    }
+                    .font(.subheadline)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color.blue.opacity(0.15))
+                    .clipShape(Capsule())
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(isRefreshing)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Toplam Varlığım")
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                    Text(masked(calculator.portfolioSummary.toplamDeger))
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                }
                 KZBadge(
                     value: calculator.portfolioSummary.karZarar,
                     percentage: calculator.portfolioSummary.karZararYuzdesi
@@ -83,6 +101,11 @@ struct DashboardView: View {
                     Text(masked(calculator.portfolioSummary.toplamMaliyet))
                         .font(.subheadline)
                         .fontWeight(.medium)
+                }
+                if let latestRate {
+                    Text("Son fiyat güncellemesi: \(Formatters.formatDate(latestRate.tarih))")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
@@ -481,7 +504,10 @@ struct DashboardView: View {
     @MainActor
     private func refreshPrices() async {
         isRefreshing = true
-        _ = await PriceService.shared.fetchAllPrices()
+        let rate = await PriceService.shared.fetchAllPrices(previous: latestRate)
+        modelContext.insert(rate)
+        try? modelContext.save()
+        recalculate()
         isRefreshing = false
     }
 }

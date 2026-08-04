@@ -25,6 +25,20 @@ final class ExchangeRate {
     var bitcoinTRY: Double?
     var ethTRY: Double?
 
+    /// Katalogdaki sabit alanı olmayan hisseler (ör. kullanıcının sonradan
+    /// eklediği DMLKT) için JSON-kodlu {sembol: fiyat} deposu.
+    var extraStocksJSON: String?
+
+    var extraStocks: [String: Double] {
+        get {
+            guard let json = extraStocksJSON, let data = json.data(using: .utf8) else { return [:] }
+            return (try? JSONDecoder().decode([String: Double].self, from: data)) ?? [:]
+        }
+        set {
+            extraStocksJSON = try? String(data: JSONEncoder().encode(newValue), encoding: .utf8)
+        }
+    }
+
     init(tarih: Date) {
         self.id = UUID()
         self.tarih = tarih
@@ -51,7 +65,7 @@ final class ExchangeRate {
         case "YFAE2": return yfae2
         case "BITCOIN/TRY": return bitcoinTRY
         case "ETH/TRY": return ethTRY
-        default: return nil
+        default: return extraStocks[instrument]
         }
     }
 }

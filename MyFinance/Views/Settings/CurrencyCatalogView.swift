@@ -25,15 +25,19 @@ struct CurrencyCatalogView: View {
             }
 
             Section {
-                HStack {
-                    TextField("Döviz kodu (ör: GBP)", text: $newCurrency)
-                        .textInputAutocapitalization(.characters)
-                        .autocorrectionDisabled()
-                    Button("Ekle") {
-                        addCurrency()
-                    }
-                    .disabled(newCurrency.trimmingCharacters(in: .whitespaces).isEmpty)
+                // Not: Mac Catalyst'te aynı HStack içinde esnek genişleyen bir
+                // eleman (TextField) varsa, sağındaki Button'ın hit-test alanı
+                // bozuluyor ve tıklamalar aksiyonu tetiklemiyor. Bu yüzden
+                // TextField ile butonu ayrı satırlarda tutuyoruz.
+                TextField("Döviz kodu (ör: GBP)", text: $newCurrency)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                    .onSubmit { addCurrency() }
+
+                Button("Ekle") {
+                    addCurrency()
                 }
+                .disabled(newCurrency.trimmingCharacters(in: .whitespaces).isEmpty)
             } footer: {
                 Text("CollectAPI'den desteklenen döviz kodlarını girebilirsiniz.")
                     .font(.caption)
