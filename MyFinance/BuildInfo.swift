@@ -3,8 +3,8 @@ import Foundation
 
 enum BuildInfo {
     static let branch     = "release/v1.0.0-2026-05-24"
-    static let commitHash = "91d75ba"
-    static let buildDate  = "04.08.2026"
+    static let commitHash = "b37796d"
+    static let buildDate  = "24.08.2026"
 
     /// Ayarlar ekranında gösterilecek versiyon metni (sondaki -YYYY-MM-DD tarih eki çıkarılır)
     static let displayVersion: String = {
