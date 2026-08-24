@@ -8,6 +8,7 @@ extension Color {
         case BirimTip.altin.rawValue: return .yellow
         case BirimTip.gumus.rawValue: return .mint
         case BirimTip.doviz.rawValue: return .cyan
+        case BirimTip.gayrimenkul.rawValue: return .red
         case BirimTip.fon.rawValue: return .green
         case BirimTip.maas.rawValue: return .teal
         case BirimTip.promosyon.rawValue: return .pink

@@ -504,7 +504,15 @@ struct DashboardView: View {
     @MainActor
     private func refreshPrices() async {
         isRefreshing = true
-        let rate = await PriceService.shared.fetchAllPrices(previous: latestRate)
+        // Katalogda olmasa bile portföyde fiilen bulunan tüm hisseler fiyat
+        // sorgusuna dahil edilir (ör. PDF'den içe aktarılan ama kataloğa
+        // eklenmesi unutulan bir hisse).
+        let portfolioStocks = Set(
+            transactions
+                .filter { $0.tip == BirimTip.hisse.rawValue }
+                .map(\.islem)
+        )
+        let rate = await PriceService.shared.fetchAllPrices(previous: latestRate, portfolioSymbols: portfolioStocks)
         modelContext.insert(rate)
         try? modelContext.save()
         recalculate()

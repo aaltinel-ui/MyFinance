@@ -20,12 +20,22 @@ final class YKYPDFImportService {
         let id = UUID()
         let tarih: Date
         let hisseKodu: String
+        let cins: String      // "Pay Senedi", "Gayrimenkul Sertifikası" vb.
         let yon: HareketYon   // .alindi = alış, .satildi = satış
         let adet: Double
         let birimFiyat: Double
         let tutarTL: Double   // BSMV dahil toplam (PDF'teki 3. sayı)
 
         var yonEtiketi: String { yon == .alindi ? "Alış" : "Satış" }
+
+        /// PDF'teki "Sermaye Piyasası Aracının Cinsi" metnine göre doğru BirimTip.
+        var birimTip: BirimTip {
+            let c = cins.lowercased()
+            if c.contains("gayrimenkul") { return .gayrimenkul }
+            if c.contains("altın") || c.contains("altin") { return .altin }
+            if c.contains("gümüş") || c.contains("gumus") { return .gumus }
+            return .hisse
+        }
     }
 
     // MARK: - Parse PDF
@@ -59,14 +69,20 @@ final class YKYPDFImportService {
     private static func parseTransactionLine(_ line: String) -> ParsedRow? {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
 
-        // İşlem satırı "Pay Senedi" ile başlar (büyük/küçük harf)
-        guard trimmed.lowercased().contains("pay senedi") else { return nil }
+        // İşlem satırı: "İşlem Tarihi Valör Tarihi" ile başlar (iki ardışık
+        // dd/MM/yyyy) ve ALIŞ/SATIŞ içerir. Enstrümanın cinsi (Pay Senedi,
+        // Gayrimenkul Sertifikası, vb.) sabit değildir — buna bağımlı olunmaz.
+        guard trimmed.range(of: #"\d{2}/\d{2}/\d{4}\s+\d{2}/\d{2}/\d{4}"#, options: .regularExpression) != nil
+        else { return nil }
+        let upper = trimmed.uppercased()
+        guard upper.contains("ALIŞ") || upper.contains("ALIS") ||
+              upper.contains("SATIŞ") || upper.contains("SATIS") else { return nil }
 
         // 1) Tarih: ilk dd/MM/yyyy deseni
         guard let tarih = extractFirstDate(from: trimmed) else { return nil }
 
-        // 2) Hisse kodu: "Pay Senedi " sonrasındaki ilk büyük harf bloğu
-        guard let hisseKodu = extractStockCode(from: trimmed) else { return nil }
+        // 2) Cins + kod: "<İki tarih> <Cins> <KOD> - <Açıklama> ..."
+        guard let (cins, hisseKodu) = extractCinsVeKod(from: trimmed) else { return nil }
 
         // 3) Yön: "ALIŞ" → alındı, "SATIŞ" → satıldı
         let yon = extractYon(from: trimmed)
@@ -83,6 +99,7 @@ final class YKYPDFImportService {
         return ParsedRow(
             tarih: tarih,
             hisseKodu: hisseKodu,
+            cins: cins,
             yon: yon,
             adet: adet,
             birimFiyat: birimFiyat,
@@ -105,15 +122,18 @@ final class YKYPDFImportService {
         return formatter.date(from: String(text[range]))
     }
 
-    private static func extractStockCode(from text: String) -> String? {
-        // "Pay Senedi" sonrasındaki ilk büyük harf + rakam kombinasyonu (2-10 karakter)
-        let pattern = #"(?i)pay\s+senedi\s+([A-Z0-9]{2,10})\s"#
+    /// "<Tarih> <Tarih> <Cins metni> <KOD> - <Açıklama> ..." kalıbından
+    /// cins (ör. "Pay Senedi", "Gayrimenkul Sertifikası") ve kodu (ör. "TUPRS",
+    /// "DMLKT") birlikte çıkarır. Enstrüman cinsi sabit bir liste değildir.
+    private static func extractCinsVeKod(from text: String) -> (cins: String, kod: String)? {
+        let pattern = #"\d{2}/\d{2}/\d{4}\s+\d{2}/\d{2}/\d{4}\s+(.+?)\s+([A-ZÇĞİÖŞÜ0-9]{2,10})\s+-\s+"#
         guard
             let regex = try? NSRegularExpression(pattern: pattern),
             let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
-            let range = Range(match.range(at: 1), in: text)
+            let cinsRange = Range(match.range(at: 1), in: text),
+            let kodRange  = Range(match.range(at: 2), in: text)
         else { return nil }
-        return String(text[range])
+        return (String(text[cinsRange]), String(text[kodRange]))
     }
 
     private static func extractYon(from text: String) -> HareketYon {
@@ -169,20 +189,24 @@ final class YKYPDFImportService {
         var added = 0
 
         for row in rows {
+            // Not: yön karşılaştırması isPositive üzerinden yapılır — aynı işlem
+            // hem PDF'den ("Alındı"/"Satıldı") hem elle ("+"/"-") girilmiş olabilir;
+            // bunlar farklı enum case olsa da aynı yönü ifade eder ve mükerrer sayılmalı.
             let duplicate = existing.contains { tx in
                 tx.islem == row.hisseKodu &&
-                tx.yonEnum == row.yon &&
+                tx.isPositive == row.yon.isPositive &&
                 abs(tx.adet - row.adet) < 0.001 &&
                 abs(tx.birimFiyat - row.birimFiyat) < 0.001 &&
                 Calendar.current.isDate(tx.tarih, inSameDayAs: row.tarih)
             }
             guard !duplicate else { continue }
 
+            let birimTip = row.birimTip
             let t = Transaction(
                 tarih: row.tarih,
                 kasaTip: kasaTip,
                 islem: row.hisseKodu,
-                tip: .hisse,
+                tip: birimTip,
                 nerede: nerede,
                 guncellenecekMi: row.yon == .alindi,
                 yon: row.yon,
@@ -193,7 +217,7 @@ final class YKYPDFImportService {
             t.tutarTL = row.tutarTL
             // rawValue string'lerini de yaz (enum dışı değerlere karşı tutarlılık)
             t.kasaTip = kasaTip.rawValue
-            t.tip = BirimTip.hisse.rawValue
+            t.tip = birimTip.rawValue
             t.nerede = nerede.rawValue
             t.yon = row.yon.rawValue
 

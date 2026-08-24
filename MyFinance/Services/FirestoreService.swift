@@ -205,6 +205,15 @@ final class FirestoreService {
     // MARK: - Download Transactions
     // Not: kasaTip/tip/nerede/yon stringleri kullanıcıya özgü olabilir (enum dışı).
     // Guard yerine fallback kullanılır, asıl string değer sonradan atanır.
+    /// Bir işlemin "içerik imzası": aynı hisse + aynı yön + aynı adet + aynı
+    /// fiyat + aynı gün kombinasyonu, farklı UUID'lerle de olsa aynı gerçek
+    /// işlemi temsil eder (ör. aynı işlem iki farklı cihazda/oturumda girilip
+    /// her biri kendi UUID'siyle buluta yüklendiğinde oluşur).
+    private func islemImzasi(islem: String, isPositive: Bool, adet: Double, fiyat: Double, tarih: Date) -> String {
+        let gun = Calendar.current.startOfDay(for: tarih)
+        return "\(islem)|\(isPositive)|\(String(format: "%.3f", adet))|\(String(format: "%.3f", fiyat))|\(gun.timeIntervalSince1970)"
+    }
+
     @discardableResult
     @MainActor
     private func downloadTransactions(context: ModelContext) async throws -> String {
@@ -212,7 +221,11 @@ final class FirestoreService {
         let total = snapshot.documents.count
         let existing = (try? context.fetch(FetchDescriptor<Transaction>())) ?? []
         let existingIDs = Set(existing.map { $0.id.uuidString })
+        var seenSignatures = Set(existing.map {
+            islemImzasi(islem: $0.islem, isPositive: $0.isPositive, adet: $0.adet, fiyat: $0.birimFiyat, tarih: $0.tarih)
+        })
         var added = 0
+        var skippedDuplicates = 0
 
         for doc in snapshot.documents {
             let d = doc.data()
@@ -223,23 +236,32 @@ final class FirestoreService {
             let tipStr      = d["tip"] as? String ?? ""
             let neredeStr   = d["nerede"] as? String ?? ""
             let yonStr      = d["yon"] as? String ?? ""
+            let islemAdi    = d["islem"] as? String ?? ""
 
             let kasaTip = KasaTip(rawValue: kasaTipStr) ?? .birikim
             let tip     = BirimTip(rawValue: tipStr) ?? .hisse
             let nerede  = SaklamaYeri(rawValue: neredeStr) ?? .banka
             let yon     = HareketYon(rawValue: yonStr) ?? .arti
+            let adet    = dbl(d, "adet")
+            let fiyat   = dbl(d, "birimFiyat")
+
+            // Farklı UUID'li ama aynı içerikli (mükerrer) kayıtları atla.
+            let imza = islemImzasi(islem: islemAdi, isPositive: yon.isPositive, adet: adet, fiyat: fiyat, tarih: tarih)
+            guard !seenSignatures.contains(imza) else {
+                skippedDuplicates += 1
+                continue
+            }
 
             let t = Transaction(
                 tarih: tarih, kasaTip: kasaTip,
-                islem: d["islem"] as? String ?? "",
+                islem: islemAdi,
                 tip: tip, nerede: nerede,
                 guncellenecekMi: d["guncellenecekMi"] as? Bool ?? true,
                 yon: yon,
-                birimFiyat: dbl(d, "birimFiyat"),
-                adet: dbl(d, "adet"),
+                birimFiyat: fiyat,
+                adet: adet,
                 notlar: d["notlar"] as? String
             )
-            let islemAdi = d["islem"] as? String ?? ""
             let normTip  = BirimTip.normalizedTip(islem: islemAdi, tip: tipStr)
             t.kasaTip = kasaTipStr; t.tip = normTip; t.nerede = neredeStr; t.yon = yonStr
             // tutarTL'yi Firestore'dan gelen değerle override et (birimFiyat*adet'ten farklı olabilir)
@@ -247,10 +269,12 @@ final class FirestoreService {
             if tutarTL > 0 { t.tutarTL = tutarTL }
             if let uuid = UUID(uuidString: idStr) { t.id = uuid }
             context.insert(t)
+            seenSignatures.insert(imza)
             added += 1
         }
         try context.save()
-        return "\(added) yeni / \(total) toplam"
+        let dupNote = skippedDuplicates > 0 ? ", \(skippedDuplicates) mükerrer atlandı" : ""
+        return "\(added) yeni / \(total) toplam\(dupNote)"
     }
 
     // MARK: - Download Dividends

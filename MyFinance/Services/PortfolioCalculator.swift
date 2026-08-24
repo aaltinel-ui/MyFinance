@@ -10,6 +10,20 @@ class PortfolioCalculator {
     var portfolioSummary = PortfolioSummary()
 
     func calculate(transactions: [Transaction], latestRates: ExchangeRate?) {
+        // Canlı kur yoksa (API anahtarı girilmemişse) fallback fiyat, enstrümanın
+        // TÜM kasalardaki en son işlem fiyatı olmalı — kasa bazında en son işlem
+        // fiyatı kullanılırsa, aynı hisse farklı kasalarda farklı "güncel fiyat"a
+        // sahip görünür (ör. TUPRS'ın ArabaParası'ndaki son alışı ile Birikim'deki
+        // son alışı farklı olduğunda toplamlar tutarsızlaşır).
+        var globalSonFiyat: [String: Double] = [:]
+        for tx in transactions {
+            globalSonFiyat[tx.islem] = tx.birimFiyat
+        }
+
+        func guncelFiyat(for islem: String) -> Double {
+            latestRates?.price(for: islem) ?? globalSonFiyat[islem] ?? 0
+        }
+
         var positionMap: [String: InstrumentPosition] = [:]
 
         for tx in transactions {
@@ -23,17 +37,16 @@ class PortfolioCalculator {
                     pos.toplamMaliyet -= pos.toplamMaliyet * ratio
                     pos.toplamAdet -= tx.adet
                 }
-                pos.guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
+                pos.guncelFiyat = guncelFiyat(for: tx.islem)
                 positionMap[key] = pos
             } else {
-                let guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
                 let pos = InstrumentPosition(
                     islem: tx.islem,
                     tip: tx.tip,
                     kasaTip: tx.kasaTip,
                     toplamAdet: tx.isPositive ? tx.adet : -tx.adet,
                     toplamMaliyet: tx.isPositive ? tx.tutarTL : -tx.tutarTL,
-                    guncelFiyat: guncelFiyat
+                    guncelFiyat: guncelFiyat(for: tx.islem)
                 )
                 positionMap[key] = pos
             }
@@ -92,17 +105,16 @@ class PortfolioCalculator {
                     pos.toplamMaliyet -= pos.toplamMaliyet * ratio
                     pos.toplamAdet -= tx.adet
                 }
-                pos.guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
+                pos.guncelFiyat = guncelFiyat(for: tx.islem)
                 neredeMap[key] = pos
             } else {
-                let guncelFiyat = latestRates?.price(for: tx.islem) ?? tx.birimFiyat
                 neredeMap[key] = InstrumentPosition(
                     islem: tx.islem,
                     tip: tx.tip,
                     kasaTip: tx.nerede,
                     toplamAdet: tx.isPositive ? tx.adet : -tx.adet,
                     toplamMaliyet: tx.isPositive ? tx.tutarTL : -tx.tutarTL,
-                    guncelFiyat: guncelFiyat
+                    guncelFiyat: guncelFiyat(for: tx.islem)
                 )
             }
         }
@@ -140,11 +152,14 @@ class PortfolioCalculator {
     func consolidatedPositions(tip: String? = nil) -> [InstrumentPosition] {
         let source = tip != nil ? positions.filter { $0.tip == tip } : positions
         var map: [String: InstrumentPosition] = [:]
+        // Kasalar arasında (fallback fiyat nedeniyle) tutarsızlık olsa bile toplam
+        // DEĞER doğru kalsın diye, her kasanın kendi güncel değerini ayrıca topluyoruz.
+        var toplamDegerMap: [String: Double] = [:]
         for pos in source {
+            toplamDegerMap[pos.islem, default: 0] += pos.guncelDeger
             if var existing = map[pos.islem] {
                 existing.toplamAdet    += pos.toplamAdet
                 existing.toplamMaliyet += pos.toplamMaliyet
-                // fiyat aynı enstrümanda aynı olmalı; üst değeri koru
                 map[pos.islem] = existing
             } else {
                 map[pos.islem] = InstrumentPosition(
@@ -156,6 +171,13 @@ class PortfolioCalculator {
                     guncelFiyat: pos.guncelFiyat
                 )
             }
+        }
+        // guncelFiyat'ı, toplam değer / toplam adet olarak yeniden türet (ağırlıklı
+        // ortalama) — böylece görünen fiyat×adet çarpımı her zaman gerçek toplamla eşleşir.
+        for (islem, toplamDeger) in toplamDegerMap {
+            guard var pos = map[islem], pos.toplamAdet > 0 else { continue }
+            pos.guncelFiyat = toplamDeger / pos.toplamAdet
+            map[islem] = pos
         }
         return map.values.sorted { $0.guncelDeger > $1.guncelDeger }
     }
